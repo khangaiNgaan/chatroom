@@ -1,0 +1,13 @@
+{
+  "name": "my-simple-chat",
+  "version": "1.0.0",
+  "description": "A vanilla JS chat app on Cloudflare Workers",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

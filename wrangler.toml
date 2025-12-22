@@ -1,4 +1,4 @@
-name = "my-simple-chat"
+name = "chatroom"
 main = "src/server.js"        # <--- 告诉 CF，后端逻辑在这里
 compatibility_date = "2024-04-05"
 

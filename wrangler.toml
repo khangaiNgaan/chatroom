@@ -1,0 +1,16 @@
+name = "my-simple-chat"
+main = "src/server.js"        # <--- 告诉 CF，后端逻辑在这里
+compatibility_date = "2024-04-05"
+
+# 开启静态资源托管 (前端)
+[assets]
+directory = "./public"        # <--- 告诉 CF，前端静态文件在这里
+
+# 定义 Durable Objects (聊天室必须)
+[[durable_objects.bindings]]
+name = "CHAT_ROOM"
+class_name = "ChatRoom"       # 对应 server.js 里的类名
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChatRoom"]

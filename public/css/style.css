@@ -33,7 +33,7 @@ body {
 	overflow-y: scroll;     /* 内容多了可以滚动 */
     padding: 20px;
     box-sizing: border-box;
-    font-family: 'unifont', 'notoemoji', sans-serif;
+    font-family: 'notoemoji', 'unifont', sans-serif;
     font-size: 14px;
 }
 
@@ -68,7 +68,7 @@ form {
 }
 
 input[type="text"] {
-    font-family: 'unifont', 'notoemoji', sans-serif;
+    font-family: 'notoemoji', 'unifont', sans-serif;
     font-size: 14px;
     color: #444f5d;
 	flex: 1;

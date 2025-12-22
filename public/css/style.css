@@ -7,6 +7,11 @@
     font-weight: bold;
     src: url(../fonts/Sentient-Bold.otf);
 }
+@font-face {
+	font-family: notoemoji;
+	font-weight: regular;
+	src: url(../fonts/NotoEmoji_Regular.ttf);
+}
 
 body {
     background-color: #d8e3ed;
@@ -29,7 +34,7 @@ body {
 	overflow-y: scroll;     /* 内容多了可以滚动 */
     padding: 20px;
     box-sizing: border-box;
-    font-family: 'unifont', sans-serif;
+    font-family: 'unifont', 'notoemoji', sans-serif;
     font-size: 14px;
 }
 
@@ -64,7 +69,7 @@ form {
 }
 
 input[type="text"] {
-    font-family: 'unifont', sans-serif;
+    font-family: 'unifont', 'notoemoji', sans-serif;
     font-size: 14px;
     color: #444f5d;
 	flex: 1;

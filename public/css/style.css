@@ -1,6 +1,6 @@
 @font-face {
     font-family: unifont;
-    src: url(https://unifoundry.com/pub/unifont/unifont-17.0.03/font-builds/unifont-17.0.03.otf);
+    src: url('https://unifoundry.com/pub/unifont/unifont-17.0.03/font-builds/unifont-17.0.03.otf');
 }
 @font-face {
     font-family: sentient;

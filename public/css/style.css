@@ -16,12 +16,6 @@
     src: url(../fonts/unifont-upper.otf);
 }
 
-@font-face {
-  font-family: 'VS-Blocker';
-  src: local('Arial'), local('Helvetica'), local('Segoe UI'), local('PingFang SC');
-  unicode-range: U+FE0F;
-}
-
 body {
     background-color: #d8e3ed;
     color: #444f5d;
@@ -44,7 +38,7 @@ body {
     padding: 20px;
     box-sizing: border-box;
     font-variant-emoji: text;
-    font-family: 'VS-Blocker', 'unifont', 'notoemoji', 'unifont-upper';
+    font-family: 'unifont', 'notoemoji', 'unifont-upper';
     font-size: 14px;
 }
 
@@ -79,7 +73,7 @@ form {
 }
 
 input[type="text"] {
-    font-family: 'VS-Blocker', 'unifont', 'notoemoji', 'unifont-upper';
+    font-family: 'unifont', 'notoemoji', 'unifont-upper';
     font-size: 14px;
     color: #444f5d;
 	flex: 1;

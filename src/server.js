@@ -54,6 +54,18 @@ export class ChatRoom {
     socket.addEventListener("message", async (msg) => {
       const data = msg.data;
 
+      if (data === "/clear") {
+        // 1. 清空内存
+        this.history = [];
+    
+        // 2. 清空硬盘 (Storage)
+        await this.state.storage.delete("history");
+    
+    
+        // 4. 结束，不把 "/clear" 这句话本身存进去
+        return; 
+      }
+
       // ✅ 【新增功能】保存历史记录
       this.saveMessage(data);
 

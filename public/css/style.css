@@ -11,6 +11,16 @@
 	font-family: notoemoji;
 	src: url(../fonts/notoemoji.ttf);
 }
+@font-face {
+    font-family: unifont-upper;
+    src: url(../fonts/unifont-upper.otf);
+}
+
+@font-face {
+  font-family: 'VS-Blocker';
+  src: local('Arial'), local('Helvetica'), local('Segoe UI'), local('PingFang SC');
+  unicode-range: U+FE0F;
+}
 
 body {
     background-color: #d8e3ed;
@@ -33,7 +43,8 @@ body {
 	overflow-y: scroll;     /* 内容多了可以滚动 */
     padding: 20px;
     box-sizing: border-box;
-    font-family: 'unifont', 'notoemoji', sans-serif;
+    font-variant-emoji: text;
+    font-family: 'VS-Blocker', 'unifont', 'notoemoji', 'unifont-upper';
     font-size: 14px;
 }
 
@@ -68,11 +79,12 @@ form {
 }
 
 input[type="text"] {
-    font-family: 'unifont', 'notoemoji', sans-serif;
+    font-family: 'VS-Blocker', 'unifont', 'notoemoji', 'unifont-upper';
     font-size: 14px;
     color: #444f5d;
 	flex: 1;
 	min-width: 0;
+	font-variant-emoji: text;
 }
 
 .title-Index {

@@ -56,10 +56,17 @@ chatForm.addEventListener('submit', (e) => {
     messageInput.value = '';
 });
 
+// 清洗异体字控制符
+function cleanMessage(text) {
+  return text.replace(/\uFE0F/g, '');
+}
+
 // --- 辅助函数：添加消息到屏幕 ---
 function addMessage(sender, text, type) {
     const div = document.createElement('div');
     div.className = 'message';
+    
+    text = cleanMessage(text);
     
     // --- 样式判断 ---
     if (type === "sent") {

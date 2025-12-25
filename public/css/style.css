@@ -10,6 +10,23 @@
 @font-face {
 	font-family: notoemoji;
 	src: url(../fonts/notoemoji.ttf);
+ unicode-range: 
+    U+231A-231B, U+23E9-23EC, U+23F0, U+23F3, /* 手表、快进等功能符 */
+    U+25FD-25FE, U+2614-2615, U+2648-2653, /* 天气、星座 */
+    U+267F, U+2693, U+26A1, U+26AA-26AB, U+26BD-26BE, U+26C4-26C5, 
+    U+26CE, U+26D4, U+26EA, U+26F2-26F3, U+26F5, U+26FA, U+26FD,
+    U+2705, U+270A-270B, U+2728, U+274C, U+274E, U+2753-2755, U+2757, 
+    U+2795-2797, U+27B0, U+27BF,
+    U+2934-2935, U+2B05-2B07, U+2B1B-2B1C, U+2B50, U+2B55,
+    U+3030, U+303D, U+3297, U+3299, /* 少量CJK兼容符号 */
+    U+1F000-1F02F, /* 麻将 */
+    U+1F0A0-1F0FF, /* 扑克 */
+    U+1F100-1F64F, /* 核心 Emoji 区 (表情、物体、交通) */
+    U+1F680-1F6FF, /* 交通与地图 */
+    U+1F900-1F9FF, /* 补充象形文字 (较新的Emoji) */
+    U+1FA70-1FAFF; /* 扩展象形文字-A (最新的Emoji) */
+}
+
 }
 @font-face {
     font-family: unifont-upper;
@@ -38,7 +55,7 @@ body {
     padding: 20px;
     box-sizing: border-box;
     font-variant-emoji: text;
-    font-family: 'unifont', 'notoemoji', 'unifont-upper';
+    font-family: 'notoemoji', 'unifont', 'unifont-upper';
     font-size: 14px;
 }
 
@@ -73,7 +90,7 @@ form {
 }
 
 input[type="text"] {
-    font-family: 'unifont', 'notoemoji', 'unifont-upper';
+    font-family: 'notoemoji', 'unifont', 'unifont-upper';
     font-size: 14px;
     color: #444f5d;
 	flex: 1;

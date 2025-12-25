@@ -13,6 +13,14 @@
  unicode-range: 
     U+200D,
     U+20E3,
+    U+263A, /* ☺ Smiling Face */
+    U+270C, /* ✌ Victory Hand */
+    U+261D, /* ☝ Index Pointing Up */
+    U+270D, /* ✍ Writing Hand */
+    /* 建议顺手加上这几个高频的老符号 */
+    U+2600-2604, /* ☀☁☂☃☄ */
+    U+2764,      /* ❤ Heavy Black Heart */
+    /* normal emoji */
     U+231A-231B, U+23E9-23EC, U+23F0, U+23F3, /* 手表、快进等功能符 */
     U+25FD-25FE, U+2614-2615, U+2648-2653, /* 天气、星座 */
     U+267F, U+2693, U+26A1, U+26AA-26AB, U+26BD-26BE, U+26C4-26C5, 

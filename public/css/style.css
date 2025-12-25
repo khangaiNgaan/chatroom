@@ -11,6 +11,8 @@
 	font-family: notoemoji;
 	src: url(../fonts/notoemoji.ttf);
  unicode-range: 
+    U+200D,
+    U+20E3,
     U+231A-231B, U+23E9-23EC, U+23F0, U+23F3, /* 手表、快进等功能符 */
     U+25FD-25FE, U+2614-2615, U+2648-2653, /* 天气、星座 */
     U+267F, U+2693, U+26A1, U+26AA-26AB, U+26BD-26BE, U+26C4-26C5, 

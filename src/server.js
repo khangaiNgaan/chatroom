@@ -5,7 +5,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    const ALLOWED_CHATROOMS = ["general", "irl", "news", "debug", "minecraft"];
+    const ALLOWED_CHATROOMS = ["general", "irl", "news", "debug", "minecraft", "GLOBAL_CHAT"];
     const pathnameParts = url.pathname.split("/").filter(part => part.length > 0);
 
     if (pathnameParts[0] === "websocket") {

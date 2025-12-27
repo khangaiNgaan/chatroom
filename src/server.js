@@ -4,16 +4,25 @@
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if (url.pathname === "/websocket") {
-      const id = env.CHAT_ROOM.idFromName("GLOBAL_CHAT");
+
+    const ALLOWED_CHATROOMS = ["general", "irl", "news", "debug", "minecraft"];
+    const pathnameParts = url.pathname.split("/").filter(part => part.length > 0);
+
+    if (pathnameParts[0] === "websocket") {
+      const roomName = pathnameParts[1] || "general";
+      if (!ALLOWED_CHATROOMS.includes(roomName)) {
+        return new Response("Chatroom not found", { status: 404 });
+      }
+      const id = env.CHAT_ROOM.idFromName(roomName);
       const stub = env.CHAT_ROOM.get(id);
       return stub.fetch(request);
     }
+
     return new Response("Not found", { status: 404 });
   }
 };
 
-// --- 2. Durable Object 类 (升级版) ---
+// --- 2. Durable Object 类 ---
 export class ChatRoom {
   constructor(state, env) {
     this.state = state; // 这里面包含了 storage API

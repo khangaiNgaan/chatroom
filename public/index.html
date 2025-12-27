@@ -36,15 +36,21 @@
         <div class="content">
           <div class="header">  
           <span class="title">cafe1</span>
-          <span class="date">indev-v0.5 <a href="#" id="darkModeButton">auto</a></span>
+          <span class="date">indev-v0.6 <a href="#" id="darkModeButton">auto</a></span>
           </div>
-          <p id="status" class="novel" style="text-align: left; color: #888; font-size: 12px;">connecting...</p>
-          <div id="chat-window">
+          <p id="status" class="connection-status">connecting...</p>
+          <div style="display: flex; gap: 3px; width: 100%;">
+            <div id="room-list">
+            </div>
+            <div style="display: flex; flex-direction: column; width: 100%;">
+              <div id="chat-window">
+              </div>
+              <form id="chat-form">
+              <input type="text" id="message-input" placeholder="input..." autocomplete="off" />
+              <button type="submit">send</button>
+              </form>
+            </div>
           </div>
-          <form id="chat-form">
-          <input type="text" id="message-input" placeholder="input..." autocomplete="off" />
-          <button type="submit">send</button>
-          </form>
           <br>
           <p class="highlight"></p>
           <p></p>

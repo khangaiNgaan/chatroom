@@ -18,15 +18,12 @@
     U+2700-27AF, /*装饰符号*/
     U+25A0-25FF, /*几何*/
 
-    /* normal emoji */
-
-    /* 6. 其他常用 Emoji 相关的符号区块 */
-    U+2300-23FF, /* 包含手表 ⌚、快进 ⏩ 等 */
-    U+24C2,      /* Ⓜ Letter M */
+    U+2300-23FF, /* ⌚ ⏩ 等 */
+    U+24C2,      /* Ⓜ */
     U+2934-2935, /* ⤴ ⤵ */
-    U+2B00-2BFF, /* 包含 ⚫ ⚪ ⭐ ⬛ ⬜ */
+    U+2B00-2BFF, /* ⚫ ⚪ ⭐ ⬛ ⬜ */
 
-    /* 7. 所有辅助平面 (Astral Planes) */
+    /* 辅助平面 Astral Planes */
     U+1F000-10FFFF; 
 }
 
@@ -105,6 +102,36 @@ body {
     font-size: 14px;
 }
 
+#room-list {
+    height: 221.5px;
+    width: 120px;
+    margin-bottom: 3px;
+    background-color: var(--chat-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 2.5px;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding: 10px;
+    box-sizing: border-box;
+    font-variant-emoji: text;
+    font-family: 'unifont', 'unifont-upper';
+    font-size: 14px;
+}
+
+.room-item {
+  cursor: pointer;
+  margin-bottom: 3px;
+}
+
+.room-item:hover {
+  background-color: var(--message-bg-color);
+}
+
+/* 当前选中的房间高亮 */
+.room-item.active {
+  background-color: var(--message-bg-color);
+}
+
 .message {
     margin-bottom: 5px;
     padding: 0px 0px;
@@ -117,6 +144,10 @@ body {
     box-shadow: none;
     text-align: center;
     width: 100%;
+}
+
+input::placeholder {
+    color: var(--border-color);
 }
 
 button {
@@ -161,6 +192,13 @@ input[type="text"] {
 
 input:focus {
     outline: none;
+}
+
+.connection-status {
+    font-family: 'unifont', sans-serif;
+    font-size: 12px;
+    color: var(--border-color);
+    text-align: left;
 }
 
 .title-Index {

@@ -89,6 +89,8 @@ body {
 #chat-window {
 	height: 200px;
 	max-width: 405px;
+    min-width: 200px;
+    width: 100%;
 	margin-bottom: 3px;
 	background-color: var(--chat-bg-color);
 	border: 1px solid var(--border-color);
@@ -105,7 +107,7 @@ body {
 #room-list {
     height: 224px;
     max-width: 105px;
-    min-width: 90px;
+    min-width: 105px;
     width: 100%;
     background-color: var(--chat-bg-color);
     border: 1px solid var(--border-color);
@@ -132,7 +134,6 @@ body {
     background-color: var(--message-bg-color);
 }
 
-/* 当前选中的房间高亮 */
 .room-item.active {
     background-color: var(--message-bg-color);
 }
@@ -142,14 +143,6 @@ body {
     padding: 0px 0px;
 }
 
-.system-msg {
-    color: #888;
-    font-size: 0.9em;
-    background: none;
-    box-shadow: none;
-    text-align: center;
-    width: 100%;
-}
 
 input::placeholder {
     color: var(--border-color);
@@ -180,6 +173,7 @@ form {
 	display: flex;
 	gap: 3px;
 	max-width: 405px;
+    min-width: 200px;
 	width: 100%;
 	box-sizing: border-box;
 }

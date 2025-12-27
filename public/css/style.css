@@ -88,8 +88,7 @@ body {
 
 #chat-window {
 	height: 200px;
-	max-width: 405px;
-    min-width: 200px;
+	width: clamp(200px, 100%, 405px);
 	margin-bottom: 3px;
 	background-color: var(--chat-bg-color);
 	border: 1px solid var(--border-color);
@@ -105,9 +104,8 @@ body {
 
 #room-list {
     height: 224px;
-    max-width: 105px;
+    width: 105px;
     min-width: 105px;
-    width: 100%;
     background-color: var(--chat-bg-color);
     border: 1px solid var(--border-color);
     border-radius: 2.5px;
@@ -171,8 +169,7 @@ button:active {
 form {
 	display: flex;
 	gap: 3px;
-	max-width: 405px;
-    min-width: 200px;
+	width: clamp(200px, 100%, 405px);
 	box-sizing: border-box;
 }
 

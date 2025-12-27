@@ -30,15 +30,43 @@
     U+1F000-10FFFF; 
 }
 
-}
 @font-face {
     font-family: unifont-upper;
     src: url(../fonts/unifont-upper.otf);
 }
 
+:root {
+    --bg-color: #d8e3ed;
+    --chat-bg-color: #ffffff;
+    --border-color: #767676;
+    --text-color: #444f5d;
+    --highlight-color: #b7c2d0;
+    --pre-code-color: #ced9e3;
+    --button-color: #efefef;
+    --button-hover-color: #f5f5f5;
+    --button-active-color: #e5e5e5;
+    --message-bg-color: #e7eef4;
+    --connection-green: #377e22;
+    --connection-red: #ea3323;
+}
+[data-theme="dark"] {
+    --bg-color: #242931;
+    --chat-bg-color: #2e3640;
+    --border-color: #555c68;
+    --text-color: #e9f0f5;
+    --highlight-color: #444f5d;
+    --pre-code-color: #2e3640;
+    --button-color: #2e3640;
+    --button-hover-color: #444f5d;
+    --button-active-color: #39424e;
+    --message-bg-color: #444f5d;
+    --connection-green: #A7D3A6;
+    --connection-red: #D67A85;
+}
+
 body {
-    background-color: #d8e3ed;
-    color: #444f5d;
+    background-color: var(--bg-color);
+    color: var(--text-color);
     max-width: 800px;
     height: 100%;
     margin: auto;
@@ -51,10 +79,11 @@ body {
 	height: 200px;
 	max-width: 405px;
 	margin-bottom: 3px;
-	background-color: #ffffff;
-	border: 1px solid #767676;
+	background-color: var(--chat-bg-color);
+	border: 1px solid var(--border-color);
 	border-radius: 2.5px;
-	overflow-y: scroll;     /* 内容多了可以滚动 */
+	overflow-y: scroll;
+    overflow-x: hidden;
     padding: 20px;
     box-sizing: border-box;
     font-variant-emoji: text;
@@ -79,9 +108,21 @@ body {
 button {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
-    color: #444f5d;
+    color: var(--text-color);
+    background-color: var(--chat-bg-color);
+    border: 1px solid var(--border-color);
+	border-radius: 2.5px;
     width: 44px;
   	flex-shrink: 0;
+}
+
+button:hover {
+    cursor: pointer;
+    background-color: var(--button-hover-color);
+}
+
+button:active {
+    background-color: var(--button-active-color);
 }
 
 form {
@@ -95,30 +136,37 @@ form {
 input[type="text"] {
     font-family: 'notoemoji', 'unifont', 'unifont-upper';
     font-size: 14px;
-    color: #444f5d;
+    color: var(--text-color);
+    background-color: var(--chat-bg-color);
+    border: 1px solid var(--border-color);
+	border-radius: 2.5px;
 	flex: 1;
 	min-width: 0;
 	font-variant-emoji: text;
+}
+
+input:focus {
+    outline: none;
 }
 
 .title-Index {
     font-family: 'sentient';
     font-weight: bold;
     font-size: 16px;
-    color: #444f5d;
+    color: var(--text-color);
 }
 
 
 .title {
     font-family: 'unifont', sans-serif;
     font-size: 16px;
-    color: #444f5d;
+    color: var(--text-color);
 }
 
 p {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
-    color: #444f5d;
+    color: var(--text-color);
     line-height: 2;
     text-align: justify;
 }
@@ -127,12 +175,12 @@ p {
 .novel {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
-    color: #444f5d;
+    color: var(--text-color);
     line-height: 2;
 }
 
 .textbox {
-    background-color: #ced9e3;
+    background-color: var(--pre-code-color);
 }
 
 
@@ -140,23 +188,23 @@ pre code {
     display: block;
     font-family: 'unifont', sans-serif;
     font-size: 14px;
-    color: #444f5d;
+    color: var(--text-color);
     line-height: 2;
-    background-color: #ced9e3;
+    background-color: var(--pre-code-color);
     padding: 10px;
     overflow-x: auto;
     white-space: pre;
     scrollbar-width: 5px;
-    scrollbar-color: #b5c0ce #ced9e3;
+    scrollbar-color: var(--scrollbar-color) var(--pre-code-color);
 }
 
 p.highlight {
-    background-color: #b7c2d0;
+    background-color: var(--highlight-color);
     line-height: 1.6;
 }
 
 html {
-    background-color: #d8e3ed;
+    background-color: var(--bg-color);
 }
 
 .box {
@@ -166,24 +214,24 @@ html {
 }
 
 a {
-    color: #444f5d;
+    color: var(--text-color);
 }
 
 a:hover {
-    background-color: #444f5d;
-    color: #d8e3ed;
+    background-color: var(--text-color);
+    color: var(--bg-color);
 }
 
 ::selection {
-    background-color: #444f5d;
-    color: #d8e3ed;
+    background-color: var(--text-color);
+    color: var(--bg-color);
 }
 
 
 .copyright {
     font-family: 'unifont', sans-serif;
     font-size: 12px;
-    color: #444f5d;
+    color: var(--text-color);
     line-height: 1;
 }
 
@@ -226,7 +274,7 @@ a:hover {
 .pagesEntrance {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
-    color: #444f5d;
+    color: var(--text-color);
     line-height: 2;
 }
 

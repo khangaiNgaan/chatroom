@@ -18,9 +18,9 @@ export class ChatRoom {
   constructor(state, env) {
     this.state = state; // 这里面包含了 storage API
     this.sessions = [];
-    this.history = [];  // ✅ 用来在内存里缓存历史记录
+    this.history = [];  // 用来在内存里缓存历史记录
 
-    // ✅ 【关键步骤】初始化时，从硬盘恢复数据
+    // 关键步骤: 初始化时，从硬盘恢复数据
     // blockConcurrencyWhile 保证在读取完数据库之前，不会处理任何请求
     this.state.blockConcurrencyWhile(async () => {
       // 尝试从硬盘获取名为 "history" 的数据
@@ -43,7 +43,7 @@ export class ChatRoom {
     socket.accept();
     this.sessions.push(socket);
 
-    // ✅ 【新增功能】新人进房，先把历史记录发给他
+    // 新人进房，先把历史记录发给他
     // 我们遍历历史记录，一条条发过去
     // 为了区分，我们在前面加个小标记，或者直接发原话
     this.history.forEach(msg => {
@@ -66,7 +66,7 @@ export class ChatRoom {
         return; 
       }
 
-      // ✅ 【新增功能】保存历史记录
+      // 保存历史记录
       this.saveMessage(data);
 
       // 广播给其他人
@@ -81,7 +81,7 @@ export class ChatRoom {
     socket.addEventListener("error", closeHandler);
   }
 
-  // ✅ 【新增辅助函数】处理存储逻辑
+  // 辅助函数: 处理存储逻辑
   async saveMessage(message) {
     // 1. 推入内存数组
     this.history.push(message);

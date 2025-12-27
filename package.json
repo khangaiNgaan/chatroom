@@ -1,5 +1,5 @@
 {
-  "name": "my-simple-chat",
+  "name": "chatroom",
   "version": "1.0.0",
   "description": "A vanilla JS chat app on Cloudflare Workers",
   "private": true,

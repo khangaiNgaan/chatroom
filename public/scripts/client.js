@@ -5,7 +5,7 @@ const roomList = document.getElementById('room-list');
 const messageInput = document.getElementById('message-input');
 const statusText = document.getElementById('status');
 
-const ROOMS = ["general", "irl", "news", "debug", "minecraft", "GLOBAL_CHAT"];
+const ROOMS = ["general", "irl", "news", "debug", "minecraft"];
 const ROOM_PLACEHOLDERS = {
     "general": "input...",
     "irl": "life with gas meter...",

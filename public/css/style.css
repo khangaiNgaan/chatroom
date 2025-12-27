@@ -103,9 +103,8 @@ body {
 }
 
 #room-list {
-    height: 221.5px;
+    height: 224px;
     width: 120px;
-    margin-bottom: 3px;
     background-color: var(--chat-bg-color);
     border: 1px solid var(--border-color);
     border-radius: 2.5px;
@@ -119,17 +118,21 @@ body {
 }
 
 .room-item {
-  cursor: pointer;
-  margin-bottom: 3px;
+    display: block;
+    height: 16px;
+    padding: 0px 0px;
+    cursor: pointer;
+    margin-bottom: 3px;
+    border-radius: 0px;
 }
 
 .room-item:hover {
-  background-color: var(--message-bg-color);
+    background-color: var(--message-bg-color);
 }
 
 /* 当前选中的房间高亮 */
 .room-item.active {
-  background-color: var(--message-bg-color);
+    background-color: var(--message-bg-color);
 }
 
 .message {
@@ -158,6 +161,7 @@ button {
     border: 1px solid var(--border-color);
 	border-radius: 2.5px;
     width: 44px;
+    height: 21px;
   	flex-shrink: 0;
 }
 
@@ -185,6 +189,8 @@ input[type="text"] {
     background-color: var(--chat-bg-color);
     border: 1px solid var(--border-color);
 	border-radius: 2.5px;
+    height: 17px;
+    padding: 1px 5px;
 	flex: 1;
 	min-width: 0;
 	font-variant-emoji: text;

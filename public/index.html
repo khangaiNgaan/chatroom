@@ -14,13 +14,18 @@
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
           let isDark = false;
+          let isMono = false;
           if (savedMode === 'auto') {
               isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else if (savedMode === 'mono') {
+              isMono = true;
           } else {
               isDark = (savedMode === 'dark');
           }
           if (isDark) {
               document.documentElement.setAttribute('data-theme', 'dark');
+          } else if (isMono) {
+              document.documentElement.setAttribute('data-theme', 'mono');
           }
       })();
     </script>
@@ -31,7 +36,7 @@
         <div class="content">
           <div class="header">  
           <span class="title">cafe1</span>
-          <span class="date">indev-v0.4 <a href="#" id="darkModeButton">auto</a></span>
+          <span class="date">indev-v0.5 <a href="#" id="darkModeButton">auto</a></span>
           </div>
           <p id="status" class="novel" style="text-align: left; color: #888; font-size: 12px;">connecting...</p>
           <div id="chat-window">

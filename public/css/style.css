@@ -63,6 +63,20 @@
     --connection-green: #A7D3A6;
     --connection-red: #D67A85;
 }
+[data-theme="mono"] {
+    --bg-color: #ffffff;
+    --chat-bg-color: #ffffff;
+    --border-color: #777777;
+    --text-color: #000000;
+    --highlight-color: #cccccc;
+    --pre-code-color: #dddddd;
+    --button-color: #eeeeee;
+    --button-hover-color: #ffffff;
+    --button-active-color: #eeeeee;
+    --message-bg-color: #eeeeee;
+    --connection-green: #000000;
+    --connection-red: #000000;
+}
 
 body {
     background-color: var(--bg-color);

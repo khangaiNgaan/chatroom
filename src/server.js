@@ -1,6 +1,7 @@
 // src/server.js
 
-// --- 1. Worker 入口 ---
+/* Worker 入口 */
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -22,7 +23,8 @@ export default {
   }
 };
 
-// --- 2. Durable Object 类 ---
+/* Durable Object 类 */
+
 export class ChatRoom {
   constructor(state, env) {
     this.state = state; // 这里面包含了 storage API
@@ -52,9 +54,7 @@ export class ChatRoom {
     socket.accept();
     this.sessions.push(socket);
 
-    // 新人进房，先把历史记录发给他
-    // 我们遍历历史记录，一条条发过去
-    // 为了区分，我们在前面加个小标记，或者直接发原话
+    // 把历史记录发给新连接的用户
     this.history.forEach(msg => {
       socket.send(msg); 
     });
@@ -69,9 +69,9 @@ export class ChatRoom {
     
         // 2. 清空硬盘 (Storage)
         await this.state.storage.delete("history");
-    
-    
-        // 4. 结束，不把 "/clear" 这句话本身存进去
+
+
+        // 4. 不把 "/clear" 本身存进去
         return; 
       }
 
@@ -101,8 +101,8 @@ export class ChatRoom {
       this.history.shift(); 
     }
 
-    // 3. 写入硬盘 (持久化)
-    // 这里的 "history" 是 Key，this.history 数组是 Value
+    // 3. 写持久化存储
+    // "history" 是 Key，this.history 数组是 Value
     await this.state.storage.put("history", this.history);
   }
 

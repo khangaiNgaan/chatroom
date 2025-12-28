@@ -145,6 +145,14 @@ input::placeholder {
     color: var(--border-color);
 }
 
+#retryButton {
+    font-family: 'unifont', sans-serif;
+    font-size: 12px;
+    margin-left: 10px;
+    text-decoration: none;
+    display: none;
+}
+
 button {
     font-family: 'unifont', sans-serif;
     font-size: 14px;

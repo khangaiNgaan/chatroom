@@ -1,9 +1,15 @@
-// 1. 获取元素
+// public/scripts/client.js
+
+/* 获取元素 */
+
 const chatWindow = document.getElementById('chat-window');
 const chatForm = document.getElementById('chat-form');
 const roomList = document.getElementById('room-list');
 const messageInput = document.getElementById('message-input');
 const statusText = document.getElementById('status');
+const retryButton = document.getElementById('retryButton');
+
+/* 房间列表和占位符 */
 
 const ROOMS = ["general", "irl", "news", "debug", "minecraft"];
 const ROOM_PLACEHOLDERS = {
@@ -17,11 +23,28 @@ const ROOM_PLACEHOLDERS = {
 let currentSocket = null;
 let currentRoom = "general";
 
+/* 函数 */
+
+// 函数：初始化
 function init() {
     renderRoomList();
+    
+    if (retryButton) {
+
+        retryButton.style.display = 'none';
+        
+        retryButton.addEventListener('click', () => {
+            console.log("手动重连中...");
+            // 点击后立刻隐藏
+            retryButton.style.display = 'none';
+            joinRoom(currentRoom);
+        });
+    }
+
     joinRoom(currentRoom);
 }
 
+// 函数：渲染房间列表
 function renderRoomList() {
     roomList.innerHTML = "";
 
@@ -43,34 +66,40 @@ function renderRoomList() {
 
 }
 
+// 函数：切换房间
 function joinRoom(roomName) {
-  // 1. 如果已有连接，先断开
+
+  // 1. 隐藏重连按钮
+  if (retryButton) retryButton.style.display = 'none';
+  
+  // 2. 断开当前连接
   if (currentSocket) {
     console.log(`断开 ${currentRoom} 的连接...`);
     currentSocket.close();
   }
 
-  // 2. 更新 UI 状态
+  // 3. 更新 UI 状态
   currentRoom = roomName;
   updateActiveRoomUI(roomName);
 
   messageInput.placeholder = ROOM_PLACEHOLDERS[roomName] || "input...";
   
-  // 3. 清空聊天界面
+  // 4. 清空聊天界面
   chatWindow.innerHTML = ""; 
   statusText.innerText = "Connecting...";
   statusText.style.color = "var(--border-color)";
 
-  // 4. 建立新连接
+  // 5. 建立新连接
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${window.location.host}/websocket/${roomName}`;
   
   currentSocket = new WebSocket(wsUrl);
 
-  // 5. 绑定事件监听
+  // 6. 绑定事件监听
   setupSocketListeners(currentSocket);
 }
 
+// 函数：高亮活跃房间
 function updateActiveRoomUI(activeRoom) {
   const items = document.querySelectorAll(".room-item");
   items.forEach(item => {
@@ -83,7 +112,7 @@ function updateActiveRoomUI(activeRoom) {
 }
 
 
-// WebSocket 事件监听绑定函数
+// 函数：WebSocket 事件监听绑定
 function setupSocketListeners(socket) {
   socket.onopen = () => {
     console.log("连接成功");
@@ -99,13 +128,18 @@ function setupSocketListeners(socket) {
   socket.onclose = () => {
     statusText.innerText = "Disconnected";
     statusText.style.color = "var(--connection-red)";
+    console.log("连接断开");
+    
+    // 显示重连按钮
+    if (retryButton) {
+      retryButton.style.display = 'inline';
+    }
   };
 
   socket.onerror = (error) => {
     console.error("WebSocket 错误:", error);
   };
 }
-
 
 // 核心函数：发送逻辑 
 chatForm.addEventListener('submit', (e) => {

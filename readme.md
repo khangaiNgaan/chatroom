@@ -1,5 +1,7 @@
 ### cafe1chaT
 
+/ˈkaːfeɪʃat/
+
 An open-source, lightweight chatroom implementation built with Vanilla JS.
 
 ***

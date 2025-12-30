@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>cafe1 - caffeine-Ink</title>
+    <title>cafe1chaT</title>
     <meta name="theme-color" content="#ffffff">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
-    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="/css/style.css">
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -35,8 +35,11 @@
     <div class="box">
         <div class="content">
           <div class="header">
-            <span class="title">cafe1</span>
-            <span class="date">indev-v0.7 <a href="#" id="darkModeButton">auto</a></span>
+            <span class="title">cafe1chaT</span>
+            <span class="themebtn">
+              <span id="user-display">loading...</span>
+              theme: <a href="#" id="darkModeButton">auto</a>
+            </span>
           </div>
           <p><span id="status" class="connection-status">connecting...</span><a href="#" id="retryButton">retry</a></p>
           <div style="display: flex; gap: 3px;">
@@ -52,19 +55,16 @@
             </div>
           </div>
           <br>
-          <p class="highlight"></p>
-          <p></p>
           <br>
         </div>
-        <div class="back"><a href="https://caffeine.ink">&lt; back to caffeine-Ink</a></div>
+        <br>
         <footer>
-          <br>
-          <div class="copyright">Copyright (c) 2025 caffeine-Ink. All rights reserved.</div>
+          <span class="copyright">Copyright (c) 2025 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span> <span class="version">v1.0 (<a href="https://github.com/khangaiNgaan/chatroom" target="_blank" rel="noopener noreferrer">source code</a>)</span>
         </footer>
     </div>
-    <script src="./scripts/client.js"></script>
-    <script src="./scripts/theme.js"></script>
-	  <script defer src="./scripts/favicon.js"></script>
+    <script src="/scripts/client.js"></script>
+    <script src="/scripts/theme.js"></script>
+    <script defer src="/scripts/favicon.js"></script>
   </body>
 </html>
   

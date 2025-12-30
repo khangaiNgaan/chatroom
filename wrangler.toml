@@ -1,15 +1,20 @@
 name = "chatroom"
-main = "src/server.js"        # <--- 告诉 CF，后端逻辑在这里
+main = "src/server.js"        # 后端逻辑在这里
 compatibility_date = "2024-04-05"
 
 # 开启静态资源托管 (前端)
 [assets]
-directory = "./public"        # <--- 告诉 CF，前端静态文件在这里
+directory = "./public"        # 前端静态文件在这里
 
 # 定义 Durable Objects (聊天室必须)
 [[durable_objects.bindings]]
 name = "CHAT_ROOM"
 class_name = "ChatRoom"       # 对应 server.js 里的类名
+
+[[d1_databases]]
+binding = "DB"
+database_name = "user-db"
+database_id = "fd14d704-f266-41ff-8c40-4b77e6cac0be"
 
 [[migrations]]
 tag = "v1"

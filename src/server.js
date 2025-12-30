@@ -1,11 +1,245 @@
-// src/server.js
+import bcrypt from 'bcryptjs';
+import { serialize, parse } from 'cookie';
+import { SignJWT, jwtVerify } from 'jose';
 
 /* Worker 入口 */
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET || "fallback-secret-dont-use-in-prod");
 
+    // ==================================================
+    // 0. API: 获取当前用户信息 (GET /api/user)
+    // ==================================================
+    if (request.method === "GET" && url.pathname === "/api/user") {
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+
+        try {
+            // 1. 验证 JWT
+            const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+            
+            // 2. 从数据库获取详细信息
+            // 这样可以获取到 signup_date 等不在 Token 里的信息
+            const user = await env.DB.prepare("SELECT uid, username, role, signup_date, email FROM users WHERE uid = ?")
+                .bind(payload.uid)
+                .first();
+
+            if (user) {
+                 return new Response(JSON.stringify(user), {
+                    headers: { "Content-Type": "application/json" }
+                });
+            } else {
+                // 数据库查不到 (罕见)，降级返回 Token 里的信息
+                return new Response(JSON.stringify(payload), {
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
+        } catch (e) {
+            // Token 无效或过期
+            return new Response(null, { status: 401 });
+        }
+    }
+
+    // ==================================================
+    // 0. API: 登出 (POST /api/logout)
+    // ==================================================
+    if ((request.method === "POST" || request.method === "GET") && url.pathname === "/api/logout") {
+        const isSecure = url.protocol === 'https:';
+        const cookieHeader = serialize('session', '', {
+            httpOnly: true,
+            secure: isSecure,
+            sameSite: 'lax',
+            maxAge: 0, // 立即过期
+            path: '/'
+        });
+        
+        // 如果是 GET 请求 (比如链接点击)，重定向回首页
+        
+        if (request.method === "GET") {
+             return new Response(null, {
+                status: 302,
+                headers: { 
+                    'Location': '/',
+                    'Set-Cookie': cookieHeader
+                }
+            });
+        }
+
+        return new Response("Logged out", {
+            status: 200,
+            headers: { 'Set-Cookie': cookieHeader }
+        });
+    }
+
+    // ==================================================
+    // 1. 注册逻辑 (POST /api/signup)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/signup") {
+      try {
+        const formData = await request.formData();
+        const username = formData.get("username");
+        const password = formData.get("password");
+        const confirmPassword = formData.get("confirm-password");
+        const inviteCode = formData.get("invite-code");
+        const turnstileToken = formData.get("cf-turnstile-response");
+        const ip = request.headers.get("CF-Connecting-IP");
+
+        // 1.1 Turnstile 验证
+        const SECRET_KEY = env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA"; 
+        const verification = await verifyTurnstile(turnstileToken, SECRET_KEY, ip);
+        if (!verification.success) {
+          return new Response(JSON.stringify({ success: false, message: "security check failed (turnstile)" }), { 
+              status: 403,
+              headers: { "Content-Type": "application/json" }
+          });
+        }
+
+        // 1.2 基础验证
+        if (password !== confirmPassword) {
+            return new Response(JSON.stringify({ success: false, message: "passwords do not match" }), { 
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // 1.3 验证邀请码
+        const invite = await env.DB.prepare("SELECT * FROM invites WHERE code = ?").bind(inviteCode).first();
+        if (!invite) {
+             return new Response(JSON.stringify({ success: false, message: "invalid invite code" }), { 
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+        if (invite.is_used === 1) {
+             return new Response(JSON.stringify({ success: false, message: "invite code already used" }), { 
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // 1.4 检查用户名是否已存在
+        const existingUser = await env.DB.prepare("SELECT uid FROM users WHERE username = ?").bind(username).first();
+        if (existingUser) {
+             return new Response(JSON.stringify({ success: false, message: "username already taken" }), { 
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // 1.5 生成 UID
+        const newUid = await generateNextUid(env);
+
+        // 1.6 密码加密
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // 1.7 写入数据库 (事务: 创建用户 + 标记邀请码已用)
+        await env.DB.batch([
+            env.DB.prepare("INSERT INTO users (uid, username, password, email, signup_date) VALUES (?, ?, ?, ?, ?)")
+                .bind(newUid, username, hashedPassword, null, Date.now()),
+            env.DB.prepare("UPDATE invites SET is_used = 1, used_by_uid = ? WHERE code = ?")
+                .bind(newUid, inviteCode)
+        ]);
+
+        return new Response(JSON.stringify({ success: true, message: "sign up successful! please login." }), { 
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+        });
+
+      } catch (err) {
+        return new Response(JSON.stringify({ success: false, message: "sign up error: " + err.message }), { 
+            status: 500,
+            headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // ==================================================
+    // 2. 登录逻辑 (POST /api/login)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/login") {
+      try {
+        const formData = await request.formData();
+        const username = formData.get("username");
+        const password = formData.get("password");
+        const turnstileToken = formData.get("cf-turnstile-response");
+        const ip = request.headers.get("CF-Connecting-IP");
+
+        // 2.1 Turnstile 验证
+        const SECRET_KEY = env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA"; 
+        const verification = await verifyTurnstile(turnstileToken, SECRET_KEY, ip);
+        if (!verification.success) {
+           return new Response(JSON.stringify({ success: false, message: "security check failed (turnstile)" }), { 
+               status: 403,
+               headers: { "Content-Type": "application/json" }
+           });
+        }
+
+        // 2.2 查找用户
+        const user = await env.DB.prepare("SELECT * FROM users WHERE username = ?").bind(username).first();
+        if (!user) {
+            return new Response(JSON.stringify({ success: false, message: "invalid username or password" }), { 
+                status: 403,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // 2.3 验证密码
+        const isValid = await bcrypt.compare(password, user.password);
+        if (!isValid) {
+            return new Response(JSON.stringify({ success: false, message: "invalid username or password" }), { 
+                status: 403,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // 2.4 生成 JWT
+        const token = await new SignJWT({ 
+            uid: user.uid, 
+            username: user.username, 
+            role: user.role 
+        })
+            .setProtectedHeader({ alg: 'HS256' })
+            .setIssuedAt()
+            .setExpirationTime('7d')
+            .sign(JWT_SECRET);
+
+        // 2.5 设置 Session Cookie
+        // 动态判断是否需要 Secure 标记 (Safari 本地 HTTP 不支持 Secure Cookie)
+        const isSecure = url.protocol === 'https:';
+
+        const cookieHeader = serialize('session', token, {
+            httpOnly: true,
+            secure: isSecure, 
+            sameSite: 'lax',
+            maxAge: 60 * 60 * 24 * 7, // 7天
+            path: '/'
+        });
+
+        return new Response(JSON.stringify({ success: true, message: "login successful" }), {
+            status: 200,
+            headers: {
+                'Set-Cookie': cookieHeader,
+                "Content-Type": "application/json"
+            }
+        });
+
+      } catch (err) {
+          return new Response(JSON.stringify({ success: false, message: "login error: " + err.message }), { 
+              status: 500,
+              headers: { "Content-Type": "application/json" }
+          });
+      }
+    }
+
+    // ==================================================
+    // 3. 聊天室 WebSocket 路由
+    // ==================================================
     const ALLOWED_CHATROOMS = ["general", "irl", "news", "debug", "minecraft"];
     const pathnameParts = url.pathname.split("/").filter(part => part.length > 0);
 
@@ -23,20 +257,66 @@ export default {
   }
 };
 
+// ==================================================
+// 辅助函数
+// ==================================================
+
+/**
+ * 验证 Cloudflare Turnstile
+ */
+async function verifyTurnstile(token, secretKey, ip) {
+  const formData = new FormData();
+  formData.append('secret', secretKey);
+  formData.append('response', token);
+  formData.append('remoteip', ip);
+
+  const result = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    body: formData,
+    method: 'POST',
+  });
+
+  return await result.json();
+}
+
+/**
+ * 生成下一个 UID
+ * 规则: 系统 01xxx, 用户 02xxx
+ * 查找以 02 开头的最大 UID，+1。如果没有，从 02001 开始。
+ */
+async function generateNextUid(env) {
+    const prefix = "02";
+    // 查找当前最大的 02 开头的 UID
+    // 注意: 这里的 SQL 假设 UID 是 TEXT 类型，但内容是数字，我们可以用字符串排序
+    const lastUser = await env.DB.prepare("SELECT uid FROM users WHERE uid LIKE ? ORDER BY uid DESC LIMIT 1")
+        .bind(`${prefix}%`)
+        .first();
+
+    let nextId = 2001; // 默认起点
+
+    if (lastUser) {
+        // 解析 '02001' -> 2001
+        const currentId = parseInt(lastUser.uid, 10);
+        if (!isNaN(currentId)) {
+            nextId = currentId + 1;
+        }
+    }
+
+    // 格式化回 5位字符串: 2002 -> "02002"
+    return nextId.toString().padStart(5, '0');
+}
+
 /* Durable Object 类 */
+
 
 export class ChatRoom {
   constructor(state, env) {
-    this.state = state; // 这里面包含了 storage API
+    this.state = state; 
+    this.env = env; // 保存 env 以便访问 JWT_SECRET
     this.sessions = [];
-    this.history = [];  // 用来在内存里缓存历史记录
+    this.history = [];  
 
-    // 关键步骤: 初始化时，从硬盘恢复数据
-    // blockConcurrencyWhile 保证在读取完数据库之前，不会处理任何请求
     this.state.blockConcurrencyWhile(async () => {
-      // 尝试从硬盘获取名为 "history" 的数据
       let stored = await this.state.storage.get("history");
-      // 如果硬盘里有，就赋值给 this.history；如果是空的，就给个空数组
       this.history = stored || [];
     });
   }
@@ -45,44 +325,85 @@ export class ChatRoom {
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected Upgrade: websocket", { status: 426 });
     }
+
+    // 1. 获取用户信息
+    let username = "username";
+    try {
+        const cookieHeader = request.headers.get("Cookie");
+        if (cookieHeader) {
+            const cookies = parse(cookieHeader);
+            if (cookies.session) {
+                const JWT_SECRET = new TextEncoder().encode(this.env.JWT_SECRET || "fallback-secret");
+                const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+                if (payload.username) {
+                    username = payload.username;
+                }
+            }
+        }
+    } catch (e) {
+        // Token 无效或过期
+        console.log("WebSocket Auth Failed:", e.message);
+    }
+
     const [client, server] = Object.values(new WebSocketPair());
-    await this.handleSession(server);
+    
+    // 2. 将用户名传递给 Session 处理函数
+    await this.handleSession(server, username);
+    
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  async handleSession(socket) {
+  async handleSession(socket, username) {
     socket.accept();
+    
+    // 附加上用户信息
+    socket.userData = { username };
     this.sessions.push(socket);
 
-    // 把历史记录发给新连接的用户
+    // 发送历史记录 (确保历史记录是 JSON 字符串)
     this.history.forEach(msg => {
-      socket.send(msg); 
+      // 兼容旧的历史记录格式
+      // 为了前端方便，最好统一发 JSON 字符串
+      if (typeof msg === 'string' && !msg.startsWith('{')) {
+          socket.send(JSON.stringify({ 
+              sender: "anonymous", 
+              text: msg, 
+              timestamp: 0 
+          }));
+      } else {
+          socket.send(msg); 
+      }
     });
 
-    // 监听消息
     socket.addEventListener("message", async (msg) => {
       const data = msg.data;
 
+      // 命令处理
       if (data === "/clear") {
-        // 1. 清空内存
         this.history = [];
-    
-        // 2. 清空硬盘 (Storage)
         await this.state.storage.delete("history");
-
-
-        // 4. 不把 "/clear" 本身存进去
+        this.broadcast(JSON.stringify({
+            sender: "system",
+            text: "Chat history cleared.",
+            timestamp: Date.now()
+        }));
         return; 
       }
+      
+      // 构建消息对象
+      const messageObj = {
+          sender: socket.userData.username,
+          text: data,
+          timestamp: Date.now()
+      };
+      
+      const messageString = JSON.stringify(messageObj);
 
-      // 保存历史记录
-      this.saveMessage(data);
-
-      // 广播给其他人
-      this.broadcast(data, socket);
+      // 保存并广播
+      this.saveMessage(messageString);
+      this.broadcast(messageString, socket);
     });
 
-    // 监听断开
     const closeHandler = () => {
       this.sessions = this.sessions.filter(s => s !== socket);
     };
@@ -92,17 +413,13 @@ export class ChatRoom {
 
   // 辅助函数: 处理存储逻辑
   async saveMessage(message) {
-    // 1. 推入内存数组
+    // message 已经是 JSON 字符串了
     this.history.push(message);
 
-    // 2. 限制长度 (比如只存最近 20 条)
     if (this.history.length > 20) {
-      // 如果超过20条，删掉最旧的那条 (也就是数组的第一个)
       this.history.shift(); 
     }
 
-    // 3. 写持久化存储
-    // "history" 是 Key，this.history 数组是 Value
     await this.state.storage.put("history", this.history);
   }
 

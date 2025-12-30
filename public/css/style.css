@@ -34,17 +34,19 @@
 
 :root {
     --bg-color: #d8e3ed;
-    --chat-bg-color: #ffffff;
-    --border-color: #767676;
+    --chat-bg-color: #eff3f7;
+    --border-color: #808ea1;
     --text-color: #444f5d;
     --highlight-color: #b7c2d0;
     --pre-code-color: #ced9e3;
-    --button-color: #efefef;
-    --button-hover-color: #f5f5f5;
-    --button-active-color: #e5e5e5;
-    --message-bg-color: #e7eef4;
+    --button-color: #f4f7f9;
+    --button-hover-color: #ecf1f4;
+    --button-active-color: #dee4e8;
+    --msg-bg-color: #e1eaf1;
     --connection-green: #377e22;
     --connection-red: #ea3323;
+    --my-nom-color: #5d8dc7;
+    --nom-color: #d868a3;
 }
 [data-theme="dark"] {
     --bg-color: #242931;
@@ -56,9 +58,11 @@
     --button-color: #2e3640;
     --button-hover-color: #444f5d;
     --button-active-color: #39424e;
-    --message-bg-color: #444f5d;
+    --msg-bg-color: #444f5d;
     --connection-green: #A7D3A6;
     --connection-red: #D67A85;
+    --my-nom-color: #A7C6EC;
+    --nom-color: #E8A5C8;
 }
 [data-theme="mono"] {
     --bg-color: #ffffff;
@@ -67,23 +71,26 @@
     --text-color: #000000;
     --highlight-color: #cccccc;
     --pre-code-color: #dddddd;
-    --button-color: #eeeeee;
+    --button-color: #ffffff;
     --button-hover-color: #ffffff;
     --button-active-color: #eeeeee;
-    --message-bg-color: #eeeeee;
+    --msg-bg-color: #ffffff;
     --connection-green: #000000;
     --connection-red: #000000;
+    --my-nom-color: #000000;
+    --nom-color: #000000;
 }
 
 body {
     background-color: var(--bg-color);
     color: var(--text-color);
     max-width: 800px;
-    height: 100%;
-    margin: auto;
-    padding: 10px 20px ;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    margin: 0 auto;
+    padding: 30px 20px 45px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    box-sizing: border-box;
 }
 
 #chat-window {
@@ -92,7 +99,7 @@ body {
 	margin-bottom: 3px;
 	background-color: var(--chat-bg-color);
 	border: 1px solid var(--border-color);
-	border-radius: 2.5px;
+	border-radius: 3px;
 	overflow-y: scroll;
     overflow-x: hidden;
     padding: 10px 20px;
@@ -108,10 +115,10 @@ body {
     min-width: 105px;
     background-color: var(--chat-bg-color);
     border: 1px solid var(--border-color);
-    border-radius: 2.5px;
+    border-radius: 3px;
     overflow-y: scroll;
     overflow-x: hidden;
-    padding: 10px;
+    padding: 6px 5px 5px 5px;
     box-sizing: border-box;
     font-variant-emoji: text;
     font-family: 'unifont', 'unifont-upper';
@@ -120,19 +127,23 @@ body {
 
 .room-item {
     display: block;
-    height: 16px;
-    padding: 0px 0px;
+    height: 23px;
+    line-height: 20px;
+    padding: 0px 4px;
     cursor: pointer;
-    margin-bottom: 3px;
-    border-radius: 0px;
+    margin-bottom: 5px;
+    border-radius: 2px;
+    box-sizing: border-box;
+    border: 1px solid transparent;
 }
 
 .room-item:hover {
-    background-color: var(--message-bg-color);
+    background-color: var(--msg-bg-color);
 }
 
 .room-item.active {
-    background-color: var(--message-bg-color);
+    background-color: var(--msg-bg-color);
+    border: 1px solid var(--border-color);
 }
 
 .message {
@@ -157,9 +168,9 @@ button {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
     color: var(--text-color);
-    background-color: var(--chat-bg-color);
+    background-color: var(--button-color);
     border: 1px solid var(--border-color);
-	border-radius: 2.5px;
+	border-radius: 3px;
     width: 44px;
     height: 21px;
   	flex-shrink: 0;
@@ -187,8 +198,9 @@ input[type="text"] {
     color: var(--text-color);
     background-color: var(--chat-bg-color);
     border: 1px solid var(--border-color);
-	border-radius: 2.5px;
-    height: 17px;
+	border-radius: 3px;
+    height: 21px;
+    box-sizing: border-box;
     padding: 1px 5px;
 	flex: 1;
 	min-width: 0;
@@ -204,13 +216,6 @@ input:focus {
     font-size: 12px;
     color: var(--border-color);
     text-align: left;
-}
-
-.title-Index {
-    font-family: 'sentient';
-    font-weight: bold;
-    font-size: 16px;
-    color: var(--text-color);
 }
 
 
@@ -267,7 +272,11 @@ html {
 .box {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1;
+}
+
+.content {
+    flex: 1;
 }
 
 a {
@@ -292,6 +301,13 @@ a:hover {
     line-height: 1;
 }
 
+.version {
+    font-family: 'unifont', sans-serif;
+    font-size: 12px;
+    text-align: right;
+    margin-right: 10px;
+}
+
 
 .index {
     font-family: 'unifont', sans-serif;
@@ -301,17 +317,24 @@ a:hover {
 
 @media (max-width: 800px) {
     body {
-        padding: 10px;
-        margin: 20px 5px 5px 10px;
+        padding: 30px 15px 45px 15px;
+        margin: 0;
+    }
+    footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        text-align: left;
+    }
+    .version {
+        margin-right: 0;
     }
 }
 
-
-.date {
+.themebtn {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
     text-align: right;
-    margin-right: 10px;
     margin-top: 15px;
 }
 
@@ -319,6 +342,12 @@ a:hover {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
+}
+
+footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
 }
 
 .navbox {
@@ -332,14 +361,6 @@ a:hover {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
     color: var(--text-color);
-    line-height: 2;
-}
-
-
-.legacyEntrance {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    text-align: right;
     line-height: 2;
 }
 

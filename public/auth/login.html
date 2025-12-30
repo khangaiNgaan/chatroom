@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>login - cafe1chaT</title>
+    <meta name="theme-color" content="#ffffff">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <script defer src="/scripts/favicon.js"></script>
+    <link rel="stylesheet" href="/css/auth.css">
+    <script src="/scripts/os_detect.js"></script>
+    <script>
+      (function() {
+          const savedMode = localStorage.getItem('theme-mode') || 'auto';
+          let isDark = false;
+          let isMono = false;
+          if (savedMode === 'auto') {
+              isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else if (savedMode === 'mono') {
+              isMono = true;
+          } else {
+              isDark = (savedMode === 'dark');
+          }
+          if (isDark) {
+              document.documentElement.setAttribute('data-theme', 'dark');
+          } else if (isMono) {
+              document.documentElement.setAttribute('data-theme', 'mono');
+          }
+      })();
+    </script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="cf3f6b51-a212-4d89-bad2-8d83e259075d"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script>
+      (async function() {
+        try {
+          const res = await fetch('/api/user');
+          if (res.ok) {
+            window.location.href = '/';
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div class="box">
+        <div class="content">
+          <div class="header">  
+          <span class="title">caffeineId</span>
+          <span class="themebtn">theme: <a href="#" id="darkModeButton">auto</a></span>
+          </div>
+          <br>
+          <div class="title-auth">login</div>
+          <div class="container">
+            <div class="authbox">
+                <span class="text">Welcome back!</span>
+            </div>
+            <div class="authbox">
+                <div id="auth-message" class="auth-message"></div>
+                <br>
+                <form id="login-form" method="POST" action="/api/login">
+                    <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
+                    <div class="input-group"><input type="password" id="password" name="password" placeholder="password" required /></div>
+                    <div class="input-group"><div class="cf-turnstile" data-sitekey="0x4AAAAAACJid3sBnLLYO4zB"></div></div>
+                    <button type="submit">login</button>
+                </form>
+                <br>
+            </div>
+            <div class="authbox">
+                <span class="text">Don't have an account? Let's <a href="/auth/signup.html">sign up</a>.</span>
+            </div>
+          </div>
+          <br>
+        </div>
+        <br>
+        <footer>
+          <span class="copyright">Copyright (c) 2025 <a href="https://caffeine.ink">caffeine-Ink</a>. Licensed under AGPLv3.</span> <span class="version">v1.0 (<a href="https://github.com/khangaiNgaan/chatroom" target="_blank" rel="noopener noreferrer">source code</a>)</span>
+        </footer>
+    </div>
+    <script src="/scripts/theme.js"></script>
+    <script>
+      const form = document.getElementById('login-form');
+      const msgBox = document.getElementById('auth-message');
+
+      // 处理原生表单验证提示
+      form.querySelectorAll('input').forEach(input => {
+          input.addEventListener('invalid', function(e) {
+              e.preventDefault();
+              const tip = document.createElement('div');
+              tip.className = 'custom-error-tip';
+              tip.innerText = this.validationMessage;
+              this.parentNode.appendChild(tip);
+              setTimeout(() => { tip.remove(); }, 2000);
+          });
+      });
+
+      // 接管表单提交
+      form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          msgBox.style.display = 'none';
+          msgBox.className = 'auth-message';
+
+          const formData = new FormData(form);
+
+          try {
+              const res = await fetch('/api/login', {
+                  method: 'POST',
+                  body: formData
+              });
+              
+              const data = await res.json();
+
+              if (data.success) {
+                  msgBox.innerText = data.message;
+                  msgBox.style.display = 'block';
+                  msgBox.classList.add('success');
+                  // 成功后延迟跳转
+                  setTimeout(() => {
+                      window.location.href = '/';
+                  }, 1000);
+              } else {
+                  msgBox.innerText = data.message;
+                  msgBox.style.display = 'block';
+                  msgBox.classList.add('error');
+                  // 失败重置 Turnstile
+                  if (window.turnstile) window.turnstile.reset();
+              }
+          } catch (err) {
+              msgBox.innerText = "Network error";
+              msgBox.style.display = 'block';
+              msgBox.classList.add('error');
+          }
+      });
+    </script>
+  </body>
+</html>

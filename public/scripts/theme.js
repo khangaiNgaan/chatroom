@@ -3,6 +3,7 @@
     const button = document.getElementById('darkModeButton');
     const html = document.documentElement; // 获取 <html> 根标签
     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const turnstile = document.querySelector('.cf-turnstile');
     
     const modes = ['light', 'dark', 'mono', 'auto'];
     
@@ -32,10 +33,13 @@
         // 核心动作：切换 HTML 属性
         if (shouldBeDark) {
             html.setAttribute('data-theme', 'dark');
+            updateTurnstileTheme('dark');
         } else if (isMono) {
             html.setAttribute('data-theme', 'mono');
+            updateTurnstileTheme('light');
         } else {
             html.removeAttribute('data-theme');
+            updateTurnstileTheme('light');
         }
     };
 
@@ -50,6 +54,7 @@
 
     // 初始化运行：设置按钮文字
     updateButtonText();
+    applyTheme(modes[currentModeIndex]);
 
     // 按钮点击事件
     if (button) {
@@ -77,4 +82,29 @@
             applyTheme('auto');
         }
     });
+
+    // 辅助函数：Turnstile 主题切换
+    let widgetId = null;
+    function updateTurnstileTheme(theme) {
+        if (turnstile) {
+            turnstile.setAttribute('data-theme', theme);
+            if (window.turnstile) {
+                if (widgetId) {
+                    window.turnstile.remove(widgetId);
+                    widgetId = null;
+                } else {
+                    turnstile.innerHTML = '';
+                }
+                
+                const sitekey = turnstile.getAttribute('data-sitekey');
+                if (sitekey) {
+                    widgetId = window.turnstile.render(turnstile, {
+                        sitekey: sitekey,
+                        theme: theme
+                    });
+                }
+            }
+        }
+    }
+
 })();

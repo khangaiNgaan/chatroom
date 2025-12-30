@@ -108,6 +108,14 @@ export default {
             });
         }
 
+        // 验证用户名格式 (仅允许字母、数字、下划线、减号)
+        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+            return new Response(JSON.stringify({ success: false, message: "username contains invalid characters" }), { 
+                status: 400,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
         // 1.3 验证邀请码
         const invite = await env.DB.prepare("SELECT * FROM invites WHERE code = ?").bind(inviteCode).first();
         if (!invite) {

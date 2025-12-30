@@ -336,6 +336,8 @@ export class ChatRoom {
 
     // 1. 获取用户信息
     let username = "username";
+    let role = "user";
+    let uid = null;
     try {
         const cookieHeader = request.headers.get("Cookie");
         if (cookieHeader) {
@@ -345,6 +347,8 @@ export class ChatRoom {
                 const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
                 if (payload.username) {
                     username = payload.username;
+                    role = payload.role || "user";
+                    uid = payload.uid || null;
                 }
             }
         }
@@ -355,17 +359,17 @@ export class ChatRoom {
 
     const [client, server] = Object.values(new WebSocketPair());
     
-    // 2. 将用户名传递给 Session 处理函数
-    await this.handleSession(server, username);
+    // 2. 将用户名和角色传递给 Session 处理函数
+    await this.handleSession(server, username, role, uid);
     
     return new Response(null, { status: 101, webSocket: client });
   }
 
-  async handleSession(socket, username) {
+  async handleSession(socket, username, role, uid) {
     socket.accept();
     
     // 附加上用户信息
-    socket.userData = { username };
+    socket.userData = { username, role, uid };
     this.sessions.push(socket);
 
     // 发送历史记录 (确保历史记录是 JSON 字符串)
@@ -388,13 +392,26 @@ export class ChatRoom {
 
       // 命令处理
       if (data === "/clear") {
+        if (socket.userData.role !== 'admin') {
+          socket.send(JSON.stringify({
+            sender: "system",
+            text: "permission denied.",
+            timestamp: Date.now()
+          }));
+          return;
+        }
+
         this.history = [];
         await this.state.storage.delete("history");
-        this.broadcast(JSON.stringify({
+        
+        const clearMsg = JSON.stringify({
             sender: "system",
-            text: "Chat history cleared.",
+            text: `chat history cleared by ${socket.userData.username}(${socket.userData.uid}).`,
             timestamp: Date.now()
-        }));
+        });
+
+        this.broadcast(clearMsg);
+        this.saveMessage(clearMsg);
         return; 
       }
       

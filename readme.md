@@ -6,6 +6,10 @@ An open-source, lightweight chatroom implementation built with Vanilla JS.
 
 Copyright (c) 2025-2026 caffeine-Ink. 
 
-License: [GNU AGPL v3.0](LICENSE.txt)
+Licensed under [**GNU AGPL v3.0**](LICENSE.txt).
 
-Built on the Cloudflare Global Network.
+<br>
+
+Built on the Cloudflare Global Network. Thank you, Cloudflare!
+
+Additionally, I owe a lot of thanks to gemini-cli. I love you, gemini <3.

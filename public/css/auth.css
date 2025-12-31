@@ -113,7 +113,7 @@ a:hover {
 
 @media (max-width: 800px) {
     body {
-        padding: 30px 15px 45px 15px;
+        padding: 30px 15px 60px 15px;
         margin: 0;
     }
     footer {
@@ -308,6 +308,7 @@ footer {
     width: clamp(200px, 100%, 400px);
     padding: 10px;
     margin-top: 10px;
+    box-sizing: border-box;
 }
 
 .text {

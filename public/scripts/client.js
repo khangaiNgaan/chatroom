@@ -11,13 +11,14 @@ const retryButton = document.getElementById('retryButton');
 
 /* 房间列表和占位符 */
 
-const ROOMS = ["general", "irl", "news", "debug", "minecraft"];
+const ROOMS = ["bulletin", "general", "irl", "news", "debug", "minecraft"];
 const ROOM_PLACEHOLDERS = {
     "general": "input...",
     "irl": "life with gas meter...",
     "news": "what's happening...",
     "debug": "debug the world...",
     "minecraft": "baked potatoes...",
+    "bulletin": "continuous iteration..."
 };
 
 let currentSocket = null;
@@ -148,7 +149,7 @@ function setupSocketListeners(socket) {
         addMessage(msg.sender, msg.text, "received", msg.timestamp);
     } catch (e) {
         // 向后兼容
-        addMessage("System", event.data, "received");
+        addMessage("anonymous", event.data, "received");
     }
   };
 
@@ -231,6 +232,9 @@ function addMessage(sender, text, type, timestamp = Date.now()) {
     
     if (sender === currentUser) {
         senderSpan.style.color = "var(--my-nom-color)";
+
+    } else if (sender === "system" || sender === "caffeine") {
+        senderSpan.style.color = "var(--admin-nom-color)";
     } else {
         senderSpan.style.color = "var(--nom-color)";
     }

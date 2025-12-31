@@ -248,7 +248,7 @@ export default {
     // ==================================================
     // 3. 聊天室 WebSocket 路由
     // ==================================================
-    const ALLOWED_CHATROOMS = ["general", "irl", "news", "debug", "minecraft"];
+    const ALLOWED_CHATROOMS = ["bulletin", "general", "irl", "news", "debug", "minecraft"];
     const pathnameParts = url.pathname.split("/").filter(part => part.length > 0);
 
     if (pathnameParts[0] === "websocket") {

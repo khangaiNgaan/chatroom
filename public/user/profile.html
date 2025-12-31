@@ -100,7 +100,7 @@
         </div>
         <br>
         <footer>
-          <span class="copyright">Copyright (c) 2025 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span> <span class="version">v1.0 (<a href="https://github.com/khangaiNgaan/chatroom" target="_blank" rel="noopener noreferrer">source code</a>)</span>
+          <span class="copyright">Copyright (c) 2025-2026 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span> <span class="version">v1.0 (<a href="https://github.com/khangaiNgaan/chatroom" target="_blank" rel="noopener noreferrer">source code</a>)</span>
         </footer>
     </div>
     
@@ -109,7 +109,7 @@
     <script>
     // 辅助函数: 格式化时间戳
     function formatDate(timestamp) {
-        if (!timestamp) return 'Unknown';
+        if (timestamp ?? null === null) return 'unknown';
         const date = new Date(timestamp);
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -132,7 +132,7 @@
             
             if (res.status === 401) {
                 // 未登录，跳转
-                window.location.href = '/login.html';
+                window.location.href = '/auth/login.html';
                 return;
             }
 

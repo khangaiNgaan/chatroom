@@ -11,6 +11,7 @@
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
     <script defer src="/scripts/favicon.js"></script>
+    <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/auth.css">
     <script src="/scripts/os_detect.js"></script>
     <script>
@@ -77,7 +78,8 @@
         </div>
         <br>
         <footer>
-          <span class="copyright">Copyright (c) 2025-2026 caffeine-Ink. Licensed under AGPLv3.</span> <span class="version"><span class="app-ver"></span></span>
+          <span class="copyright">Copyright (c) 2025-2026 caffeine-Ink. Licensed under AGPLv3.</span>
+          <span class="version"><span class="app-ver"></span></span>
         </footer>
     </div>
     <script src="/scripts/theme.js"></script>
@@ -90,7 +92,7 @@
           input.addEventListener('invalid', function(e) {
               e.preventDefault();
               const tip = document.createElement('div');
-              tip.className = 'custom-error-tip';
+              tip.className = 'error-tip';
               tip.innerText = this.validationMessage;
               this.parentNode.appendChild(tip);
               setTimeout(() => { tip.remove(); }, 2000);

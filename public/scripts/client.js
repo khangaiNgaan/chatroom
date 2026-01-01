@@ -8,6 +8,7 @@ const roomList = document.getElementById('room-list');
 const messageInput = document.getElementById('message-input');
 const statusText = document.getElementById('status');
 const retryButton = document.getElementById('retryButton');
+const reloadButton = document.getElementById('reloadButton');
 
 /* 房间列表和占位符 */
 
@@ -62,6 +63,13 @@ async function init() {
             joinRoom(currentRoom);
         });
     }
+    if (reloadButton) {
+        reloadButton.style.display = 'none';
+        reloadButton.addEventListener('click', () => {
+            console.log("页面重载中...");
+            window.location.reload();
+        });
+    }
 
     joinRoom(currentRoom);
 }
@@ -93,6 +101,7 @@ function joinRoom(roomName) {
 
   // 1. 隐藏重连按钮
   if (retryButton) retryButton.style.display = 'none';
+  if (reloadButton) reloadButton.style.display = 'none';
   
   // 2. 断开当前连接
   if (currentSocket) {
@@ -161,6 +170,9 @@ function setupSocketListeners(socket) {
     // 显示重连按钮
     if (retryButton) {
       retryButton.style.display = 'inline';
+    }
+    if (reloadButton) {
+      reloadButton.style.display = 'inline';
     }
   };
 

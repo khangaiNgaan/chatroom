@@ -1,12 +1,5 @@
-@font-face {
-    font-family: unifont;
-    src: url(../fonts/unifont.otf);
-}
-@font-face {
-    font-family: sentient;
-    font-weight: bold;
-    src: url(../fonts/Sentient-Bold.otf);
-}
+/* auth CSS */
+
 :root {
     --bg-color: #d8e3ed;
     --chat-bg-color: #eff3f7;
@@ -56,78 +49,7 @@
     --error-color: #000000;
 }
 
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 30px 20px 45px 20px;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    box-sizing: border-box;
-}
-
-html {
-    background-color: var(--bg-color);
-}
-
-.box {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
-
-.content {
-    flex: 1;
-}
-
-a {
-    color: var(--text-color);
-}
-
-a:hover {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-}
-
-::selection {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-}
-
-
-.copyright {
-    font-family: 'unifont', sans-serif;
-    font-size: 12px;
-    color: var(--text-color);
-    line-height: 1;
-}
-
-
-.index {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    line-height: 1.8;
-}
-
-@media (max-width: 800px) {
-    body {
-        padding: 30px 15px 60px 15px;
-        margin: 0;
-    }
-    footer {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        text-align: left;
-    }
-    .version {
-        margin-right: 0;
-    }
-}
-
-.custom-error-tip {
+.error-tip {
     position: absolute;
     top: 110%;
     left: 0;
@@ -179,11 +101,6 @@ form {
     display: block;
     width: 100%;
     max-width: 200px;
-}
-
-
-input::placeholder {
-    color: var(--border-color);
 }
 
 input[type="text"] {
@@ -253,45 +170,6 @@ button:active {
     color: var(--text-color);
     text-align: center;
     margin-bottom: 30px;
-}
-
-.themebtn {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    text-align: right;
-    margin-top: 15px;
-}
-
-.version {
-    font-family: 'unifont', sans-serif;
-    font-size: 12px;
-    text-align: right;
-    margin-right: 10px;
-}
-
-.title {
-    font-family: 'unifont', sans-serif;
-    font-size: 16px;
-    color: var(--text-color);
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-
-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.back {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    margin-right: 10px;
-    margin-top: 15px;
 }
 
 .container {

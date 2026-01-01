@@ -1,12 +1,5 @@
-@font-face {
-    font-family: unifont;
-    src: url(../fonts/unifont.otf);
-}
-@font-face {
-    font-family: sentient;
-    font-weight: bold;
-    src: url(../fonts/Sentient-Bold.otf);
-}
+/* style CSS */
+
 @font-face {
 	font-family: notoemoji;
 	src: url(../fonts/notoemoji.ttf);
@@ -84,18 +77,6 @@
     --nom-color: #000000;
 }
 
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 30px 20px 45px 20px;
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    box-sizing: border-box;
-}
-
 #chat-window {
 	height: 200px;
 	width: clamp(200px, 100%, 405px);
@@ -154,12 +135,15 @@ body {
     padding: 0px 0px;
 }
 
-
-input::placeholder {
-    color: var(--border-color);
+#retryButton {
+    font-family: 'unifont', sans-serif;
+    font-size: 12px;
+    margin-left: 10px;
+    text-decoration: none;
+    display: none;
 }
 
-#retryButton {
+#reloadButton {
     font-family: 'unifont', sans-serif;
     font-size: 12px;
     margin-left: 10px;
@@ -177,6 +161,7 @@ button {
     width: 44px;
     height: 21px;
   	flex-shrink: 0;
+    box-sizing: border-box;
 }
 
 button:hover {
@@ -219,171 +204,4 @@ input:focus {
     font-size: 12px;
     color: var(--border-color);
     text-align: left;
-}
-
-
-.title {
-    font-family: 'unifont', sans-serif;
-    font-size: 16px;
-    color: var(--text-color);
-}
-
-p {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    color: var(--text-color);
-    line-height: 2;
-    text-align: justify;
-}
-
-
-.novel {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    color: var(--text-color);
-    line-height: 2;
-}
-
-.textbox {
-    background-color: var(--pre-code-color);
-}
-
-
-pre code {
-    display: block;
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    color: var(--text-color);
-    line-height: 2;
-    background-color: var(--pre-code-color);
-    padding: 10px;
-    overflow-x: auto;
-    white-space: pre;
-    scrollbar-width: 5px;
-    scrollbar-color: var(--scrollbar-color) var(--pre-code-color);
-}
-
-p.highlight {
-    background-color: var(--highlight-color);
-    line-height: 1.6;
-}
-
-html {
-    background-color: var(--bg-color);
-}
-
-.box {
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-}
-
-.content {
-    flex: 1;
-}
-
-a {
-    color: var(--text-color);
-}
-
-a:hover {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-}
-
-::selection {
-    background-color: var(--text-color);
-    color: var(--bg-color);
-}
-
-
-.copyright {
-    font-family: 'unifont', sans-serif;
-    font-size: 12px;
-    color: var(--text-color);
-    line-height: 1;
-}
-
-.version {
-    font-family: 'unifont', sans-serif;
-    font-size: 12px;
-    text-align: right;
-    margin-right: 10px;
-}
-
-
-.index {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    line-height: 1.8;
-}
-
-@media (max-width: 800px) {
-    body {
-        padding: 30px 15px 60px 15px;
-        margin: 0;
-    }
-    footer {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 8px;
-        text-align: left;
-    }
-    .version {
-        margin-right: 0;
-    }
-}
-
-.themebtn {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    text-align: right;
-    margin-top: 15px;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-
-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.navbox {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-}
-
-
-.pagesEntrance {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    color: var(--text-color);
-    line-height: 2;
-}
-
-
-
-li {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    line-height: 1.5;
-}
-
-.pics {
-    width: 100%;
-    height: auto;
-}
-
-
-.back {
-    font-family: 'unifont', sans-serif;
-    font-size: 14px;
-    margin-right: 10px;
-    margin-top: 15px;
 }

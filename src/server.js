@@ -7,7 +7,10 @@ import { SignJWT, jwtVerify } from 'jose';
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET || "fallback-secret-dont-use-in-prod");
+    if (!env.JWT_SECRET) {
+        return new Response("Internal Server Error: JWT_SECRET is not configured.", { status: 500 });
+    }
+    const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
 
     // ==================================================
     // 0. API: 获取当前用户信息 (GET /api/user)
@@ -91,7 +94,13 @@ export default {
         const ip = request.headers.get("CF-Connecting-IP");
 
         // 1.1 Turnstile 验证
-        const SECRET_KEY = env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA"; 
+        const SECRET_KEY = env.TURNSTILE_SECRET_KEY; 
+        if (!SECRET_KEY) {
+             return new Response(JSON.stringify({ success: false, message: "server config error: missing turnstile key" }), { 
+                status: 500,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
         const verification = await verifyTurnstile(turnstileToken, SECRET_KEY, ip);
         if (!verification.success) {
           return new Response(JSON.stringify({ success: false, message: "security check failed (turnstile)" }), { 
@@ -179,7 +188,13 @@ export default {
         const ip = request.headers.get("CF-Connecting-IP");
 
         // 2.1 Turnstile 验证
-        const SECRET_KEY = env.TURNSTILE_SECRET_KEY || "1x0000000000000000000000000000000AA"; 
+        const SECRET_KEY = env.TURNSTILE_SECRET_KEY;
+        if (!SECRET_KEY) {
+             return new Response(JSON.stringify({ success: false, message: "server config error: missing turnstile key" }), { 
+                status: 500,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
         const verification = await verifyTurnstile(turnstileToken, SECRET_KEY, ip);
         if (!verification.success) {
            return new Response(JSON.stringify({ success: false, message: "security check failed (turnstile)" }), { 
@@ -334,32 +349,38 @@ export class ChatRoom {
       return new Response("Expected Upgrade: websocket", { status: 426 });
     }
 
-    // 1. 获取用户信息
-    let username = "username";
-    let role = "user";
-    let uid = null;
+    // 1. 获取用户信息并验证
+    let username, role, uid;
     try {
         const cookieHeader = request.headers.get("Cookie");
-        if (cookieHeader) {
-            const cookies = parse(cookieHeader);
-            if (cookies.session) {
-                const JWT_SECRET = new TextEncoder().encode(this.env.JWT_SECRET || "fallback-secret");
-                const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
-                if (payload.username) {
-                    username = payload.username;
-                    role = payload.role || "user";
-                    uid = payload.uid || null;
-                }
-            }
+        if (!cookieHeader) throw new Error("Missing cookie header");
+        
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) throw new Error("Missing session cookie");
+
+        if (!this.env.JWT_SECRET) {
+            throw new Error("Server configuration error: JWT_SECRET missing");
         }
+
+        const JWT_SECRET = new TextEncoder().encode(this.env.JWT_SECRET);
+        const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+        
+        if (!payload.uid || !payload.username) {
+            throw new Error("Invalid session content");
+        }
+
+        username = payload.username;
+        role = payload.role || "user";
+        uid = payload.uid;
+
     } catch (e) {
-        // Token 无效或过期
         console.log("WebSocket Auth Failed:", e.message);
+        return new Response("Unauthorized: Please login to access chatrooms", { status: 401 });
     }
 
     const [client, server] = Object.values(new WebSocketPair());
     
-    // 2. 将用户名和角色传递给 Session 处理函数
+    // 2. 将用户信息传递给 Session 处理函数
     await this.handleSession(server, username, role, uid);
     
     return new Response(null, { status: 101, webSocket: client });

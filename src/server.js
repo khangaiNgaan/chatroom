@@ -182,6 +182,70 @@ export default {
     if (request.method === "POST" && url.pathname === "/api/login") {
       try {
         const formData = await request.formData();
+        
+        // 2.0 Access Token 登录
+        const accessToken = formData.get("access_token");
+        const loginUsername = formData.get("username");
+
+        if (accessToken) {
+             // 获取 ID 和 UID
+             const tokenRecord = await env.DB.prepare("SELECT id, uid FROM tokens WHERE token = ?").bind(accessToken).first();
+             if (!tokenRecord) {
+                 return new Response(JSON.stringify({ success: false, message: "invalid access token" }), { 
+                    status: 403,
+                    headers: { "Content-Type": "application/json" }
+                });
+             }
+             
+             const user = await env.DB.prepare("SELECT * FROM users WHERE uid = ?").bind(tokenRecord.uid).first();
+             if (!user) {
+                  return new Response(JSON.stringify({ success: false, message: "user not found" }), { 
+                    status: 404,
+                    headers: { "Content-Type": "application/json" }
+                });
+             }
+
+             // 校验用户名是否匹配
+             if (loginUsername && user.username !== loginUsername) {
+                 return new Response(JSON.stringify({ success: false, message: "username does not match token owner" }), { 
+                    status: 403,
+                    headers: { "Content-Type": "application/json" }
+                });
+             }
+
+             // 生成 JWT (90天)
+             const token = await new SignJWT({ 
+                uid: user.uid, 
+                username: user.username, 
+                role: user.role 
+             })
+                .setProtectedHeader({ alg: 'HS256' })
+                .setIssuedAt()
+                .setExpirationTime('90d')
+                .sign(JWT_SECRET);
+
+            const isSecure = url.protocol === 'https:';
+            const cookieHeader = serialize('session', token, {
+                httpOnly: true,
+                secure: isSecure, 
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 90, 
+                path: '/'
+            });
+
+            // 销毁 Token (一次性使用)
+            await env.DB.prepare("DELETE FROM tokens WHERE id = ?").bind(tokenRecord.id).run();
+
+            return new Response(JSON.stringify({ success: true, message: "login successful" }), {
+                status: 200,
+                headers: {
+                    'Set-Cookie': cookieHeader,
+                    "Content-Type": "application/json"
+                }
+            });
+        }
+
+        // 常规登录
         const username = formData.get("username");
         const password = formData.get("password");
         const turnstileToken = formData.get("cf-turnstile-response");
@@ -258,6 +322,77 @@ export default {
               headers: { "Content-Type": "application/json" }
           });
       }
+    }
+
+    // ==================================================
+    // 2.5 Access Token 管理 (GET/POST/DELETE /api/tokens)
+    // ==================================================
+    if (url.pathname === "/api/tokens") {
+        // 鉴权
+        let uid;
+        try {
+            const cookieHeader = request.headers.get("Cookie");
+            if (!cookieHeader) throw new Error("No cookie");
+            const cookies = parse(cookieHeader);
+            if (!cookies.session) throw new Error("No session");
+            const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+            uid = payload.uid;
+        } catch (e) {
+            return new Response(null, { status: 401 });
+        }
+
+        // GET: 获取列表
+        if (request.method === "GET") {
+            const tokens = await env.DB.prepare("SELECT id, label, created_at, token FROM tokens WHERE uid = ? ORDER BY created_at DESC").bind(uid).all();
+            return new Response(JSON.stringify({ success: true, tokens: tokens.results }), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // POST: 创建 Token
+        if (request.method === "POST") {
+            const formData = await request.formData();
+            const label = formData.get("label") || "New Token";
+
+            // 检查数量限制
+            const countObj = await env.DB.prepare("SELECT COUNT(*) as count FROM tokens WHERE uid = ?").bind(uid).first();
+            if (countObj.count >= 3) {
+                 return new Response(JSON.stringify({ success: false, message: "max 3 tokens allowed" }), { 
+                    status: 400,
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
+            // 生成 Token
+            const rawToken = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '');
+            const newToken = "AT-" + rawToken.substring(0, 32);
+
+            await env.DB.prepare("INSERT INTO tokens (uid, token, label, created_at) VALUES (?, ?, ?, ?)")
+                .bind(uid, newToken, label, Date.now())
+                .run();
+
+            return new Response(JSON.stringify({ success: true, token: newToken }), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // DELETE: 删除 Token
+        if (request.method === "DELETE") {
+             const urlParams = new URLSearchParams(url.search);
+             const id = urlParams.get("id");
+             
+             if (!id) {
+                 return new Response(JSON.stringify({ success: false, message: "missing id" }), { status: 400 });
+             }
+
+             await env.DB.prepare("DELETE FROM tokens WHERE id = ? AND uid = ?")
+                .bind(id, uid)
+                .run();
+            
+             return new Response(JSON.stringify({ success: true }), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
     }
 
     // ==================================================
@@ -396,7 +531,6 @@ export class ChatRoom {
     // 发送历史记录 (确保历史记录是 JSON 字符串)
     this.history.forEach(msg => {
       // 兼容旧的历史记录格式
-      // 为了前端方便，最好统一发 JSON 字符串
       if (typeof msg === 'string' && !msg.startsWith('{')) {
           socket.send(JSON.stringify({ 
               sender: "anonymous", 
@@ -412,28 +546,42 @@ export class ChatRoom {
       const data = msg.data;
 
       // 命令处理
-      if (data === "/clear") {
-        if (socket.userData.role !== 'admin') {
-          socket.send(JSON.stringify({
-            sender: "system",
-            text: "permission denied.",
-            timestamp: Date.now()
-          }));
-          return;
+      if (data.startsWith("/")) {
+        console.log(`Received command from ${socket.userData.username}: ${data}`);
+        const args = data.split(" ");
+        const command = args[0];
+
+        if (command === "/clear") {
+          if (socket.userData.role !== 'admin') {
+            socket.send(JSON.stringify({
+              sender: "system",
+              text: "permission denied.",
+              timestamp: Date.now()
+            }));
+            return;
+          }
+
+          this.history = [];
+          await this.state.storage.delete("history");
+          
+          const clearMsg = JSON.stringify({
+              sender: "system",
+              text: `chat history cleared by ${socket.userData.username}(${socket.userData.uid}).`,
+              timestamp: Date.now()
+          });
+
+          this.broadcast(clearMsg);
+          this.saveMessage(clearMsg);
+          return; 
         }
 
-        this.history = [];
-        await this.state.storage.delete("history");
+        socket.send(JSON.stringify({
+          sender: "system",
+          text: `unknown command: ${command}`,
+          timestamp: Date.now()
+        }));
+        return;
         
-        const clearMsg = JSON.stringify({
-            sender: "system",
-            text: `chat history cleared by ${socket.userData.username}(${socket.userData.uid}).`,
-            timestamp: Date.now()
-        });
-
-        this.broadcast(clearMsg);
-        this.saveMessage(clearMsg);
-        return; 
       }
       
       // 构建消息对象

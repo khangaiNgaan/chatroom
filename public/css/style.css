@@ -28,6 +28,7 @@
 :root {
     --bg-color: #d8e3ed;
     --chat-bg-color: #eff3f7;
+    --popup-bg-color: rgba(255, 255, 255, 0.5);
     --border-color: #808ea1;
     --text-color: #444f5d;
     --highlight-color: #b7c2d0;
@@ -45,6 +46,7 @@
 [data-theme="dark"] {
     --bg-color: #242931;
     --chat-bg-color: #2e3640;
+    --popup-bg-color: rgba(46, 54, 64, 0.5);
     --border-color: #555c68;
     --text-color: #e9f0f5;
     --highlight-color: #444f5d;
@@ -62,6 +64,7 @@
 [data-theme="mono"] {
     --bg-color: #ffffff;
     --chat-bg-color: #ffffff;
+    --popup-bg-color: #ffffff;
     --border-color: #777777;
     --text-color: #000000;
     --highlight-color: #cccccc;

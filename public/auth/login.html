@@ -71,15 +71,16 @@
                 <br>
             </div>
             <div class="authbox">
-                <span class="text">Don't have an account? Let's <a href="/auth/signup.html">sign up</a>.</span>
+                <span class="text">Don't have an account? Let's <a href="/auth/signup.html">sign up</a>.</span><br>
+                <hr>
+                <span class="text">Can't login? Try your <a href="/auth/tokens.html">tokens</a>.</span>
             </div>
           </div>
           <br>
         </div>
         <br>
         <footer>
-          <span class="copyright">Copyright (c) 2025-2026 caffeine-Ink. Licensed under AGPLv3.</span>
-          <span class="version"><span class="app-ver"></span></span>
+          <span class="copyright">Copyright (c) 2025-2026 caffeine-Ink. Licensed under AGPLv3. <span class="app-ver"></span></span>
         </footer>
     </div>
     <script src="/scripts/theme.js"></script>
@@ -122,7 +123,7 @@
                   // 成功后延迟跳转
                   setTimeout(() => {
                       window.location.href = '/';
-                  }, 1000);
+                  }, 2000);
               } else {
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';

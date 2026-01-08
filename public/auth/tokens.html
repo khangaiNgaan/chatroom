@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>sign up - cafe1chaT</title>
+    <title>login (AT) - cafe1chaT</title>
     <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -34,7 +34,6 @@
       })();
     </script>
     <script defer src="https://cloud.umami.is/script.js" data-website-id="cf3f6b51-a212-4d89-bad2-8d83e259075d"></script>
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <script>
       (async function() {
         try {
@@ -54,26 +53,24 @@
           <span class="themebtn">theme: <a href="#" id="darkModeButton">auto</a></span>
           </div>
           <br>
-          <div class="title-auth">sign up</div>
+          <div class="title-auth">login (AT)</div>
           <div class="container">
             <div class="authbox">
-                <span class="text">Welcome to <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer" style="text-decoration: none;">caffeine-Ink</a>!</span>
+                <span class="text">Access Token Login</span><br>
+                <span class="text" style="color: var(--border-color); font-size: 12px;">Tokens are one-time use. You will be logged in for 90 days.</span>
             </div>
             <div class="authbox">
                 <div id="auth-message" class="auth-message"></div>
                 <br>
-                <form id="login-form" method="POST" action="/api/signup">
-                    <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
-                    <div class="input-group"><input type="password" id="password" name="password" placeholder="password" required /></div>
-                    <div class="input-group"><input type="password" id="confirm-password" name="confirm-password" placeholder="confirm password" required /></div>
-                    <div class="input-group"><input type="text" id="invite-code" name="invite-code" placeholder="invite code" required /></div>
-                    <div class="input-group"><div class="cf-turnstile" data-sitekey="0x4AAAAAACJid3sBnLLYO4zB"></div></div>
-                    <button type="submit">sign up</button>
+                <form id="login-form" method="POST" action="/api/login">
+                        <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
+                        <div class="input-group"><input type="password" id="access_token" name="access_token" placeholder="access token (AT-...)" required /></div>
+                    <button type="submit">login</button>
                 </form>
                 <br>
             </div>
             <div class="authbox">
-                <span class="text">Already have an account? Go to <a href="/auth/login.html">login</a>.</span>
+                <span class="text">Back to <a href="/auth/login.html">password login</a>.</span>
             </div>
           </div>
           <br>
@@ -108,7 +105,7 @@
           const formData = new FormData(form);
 
           try {
-              const res = await fetch('/api/signup', {
+              const res = await fetch('/api/login', {
                   method: 'POST',
                   body: formData
               });
@@ -119,15 +116,14 @@
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';
                   msgBox.classList.add('success');
-                  // 成功后延迟跳转登录页
+                  // 成功后延迟跳转
                   setTimeout(() => {
-                      window.location.href = '/auth/login.html';
+                      window.location.href = '/';
                   }, 2000);
               } else {
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';
                   msgBox.classList.add('error');
-                  if (window.turnstile) window.turnstile.reset();
               }
           } catch (err) {
               msgBox.innerText = "network error";

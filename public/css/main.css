@@ -52,6 +52,7 @@ html {
 
 a {
     color: var(--text-color);
+    cursor: pointer;
 }
 
 a:hover {
@@ -95,9 +96,16 @@ a:hover {
     font-size: 14px;
     margin-right: 10px;
     margin-top: 15px;
+    margin-bottom: 30px;
 }
 
 .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.flexEnd {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
@@ -118,6 +126,18 @@ input::placeholder {
     font-size: 14px;
     text-align: right;
     margin-top: 15px;
+}
+
+.urlbtn {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    margin-left: 10px;
+    margin-bottom: 30px;
+}
+
+hr {
+    border: 0.5px solid var(--border-color);
+    margin: 8px 5px;
 }
 
 p {

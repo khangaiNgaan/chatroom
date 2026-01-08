@@ -10,8 +10,8 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
-    <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/style.css">
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -56,9 +56,12 @@
             border-radius: 5px;
             padding: 15px;
             display: block;
-            max-width: 450px;
+            max-width: 513px;
             width: 100%;
             box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        .content {
             margin-bottom: 20px;
         }
     </style>
@@ -98,9 +101,8 @@
           </div>
 
           <br>
-          <div class="back"><a href="/">&lt; back to chat</a></div>
+          <div class="flexEnd"><div class="back"><a href="/">&lt; back to chat</a></div> <div class="urlbtn"><a href="/user/get_tokens.html">access tokens</a> <a style="margin-left: 20px;">email</a> <a style="margin-left: 20px;">settings</a></div></div>
         </div>
-        <br>
         <footer>
           <span class="copyright">Copyright (c) 2025-2026 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span>
           <span class="version"><span class="app-ver"></span> (<a href="https://github.com/khangaiNgaan/chatroom" target="_blank" rel="noopener noreferrer">source code</a>)</span>

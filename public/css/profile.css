@@ -1,0 +1,33 @@
+/* profile CSS */
+
+.profile-table {
+    width: 100%;
+    max-width: 400px;
+    border-collapse: collapse;
+    font-family: 'unifont', sans-serif;
+}
+.profile-table td {
+    padding: 8px 0;
+}
+.profile-table td:first-child {
+    width: 120px;
+    color: var(--border-color);
+}
+.loading-text {
+    color: var(--border-color);
+}
+
+#profile-content {
+    border : 1px solid var(--border-color);
+    background-color: var(--chat-bg-color);
+    border-radius: 5px;
+    padding: 15px;
+    display: block;
+    max-width: 513px;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 20px;
+}
+.content {
+    margin-bottom: 20px;
+}

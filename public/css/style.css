@@ -25,61 +25,6 @@
     src: url(../fonts/unifont-upper.otf);
 }
 
-:root {
-    --bg-color: #d8e3ed;
-    --chat-bg-color: #eff3f7;
-    --popup-bg-color: rgba(255, 255, 255, 0.5);
-    --border-color: #808ea1;
-    --text-color: #444f5d;
-    --highlight-color: #b7c2d0;
-    --pre-code-color: #ced9e3;
-    --button-color: #f4f7f9;
-    --button-hover-color: #ecf1f4;
-    --button-active-color: #dee4e8;
-    --msg-bg-color: #e1eaf1;
-    --connection-green: #377e22;
-    --connection-red: #ea3323;
-    --my-nom-color: #5d8dc7;
-    --admin-nom-color: #d79a40;
-    --nom-color: #d868a3;
-}
-[data-theme="dark"] {
-    --bg-color: #242931;
-    --chat-bg-color: #2e3640;
-    --popup-bg-color: rgba(46, 54, 64, 0.5);
-    --border-color: #555c68;
-    --text-color: #e9f0f5;
-    --highlight-color: #444f5d;
-    --pre-code-color: #2e3640;
-    --button-color: #2e3640;
-    --button-hover-color: #444f5d;
-    --button-active-color: #39424e;
-    --msg-bg-color: #444f5d;
-    --connection-green: #A7D3A6;
-    --connection-red: #D67A85;
-    --my-nom-color: #A7C6EC;
-    --admin-nom-color: #F9E1BD; /* #C5E4C0 */
-    --nom-color: #E8A5C8;
-}
-[data-theme="mono"] {
-    --bg-color: #ffffff;
-    --chat-bg-color: #ffffff;
-    --popup-bg-color: #ffffff;
-    --border-color: #777777;
-    --text-color: #000000;
-    --highlight-color: #cccccc;
-    --pre-code-color: #dddddd;
-    --button-color: #ffffff;
-    --button-hover-color: #ffffff;
-    --button-active-color: #eeeeee;
-    --msg-bg-color: #ffffff;
-    --connection-green: #000000;
-    --connection-red: #000000;
-    --my-nom-color: #000000;
-    --admin-nom-color: #000000;
-    --nom-color: #000000;
-}
-
 #chat-window {
 	height: 200px;
 	width: clamp(200px, 100%, 405px);

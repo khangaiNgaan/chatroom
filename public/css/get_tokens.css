@@ -1,0 +1,179 @@
+/* get_tokens CSS */
+
+.token-item {
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+    background: var(--chat-bg-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+.token-info {
+    text-align: left;
+}
+.token-label {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    display: block;
+}
+.token-mask {
+    font-family: 'unifont', monospace;
+    color: var(--border-color);
+    font-size: 12px;
+}
+.btn-delete {
+    color: var(--connection-red);
+    border: 1px solid var(--border-color);
+    background: transparent;
+    padding: 2px 10px 3px 10px;
+    cursor: pointer;
+    height: 23px;
+    font-size: 0.8em;
+    border-radius: 3px;
+    width: 70px;
+}
+.btn-delete:hover {
+    background: var(--connection-red);
+    color: var(--button-color);
+    border-color: var(--connection-red);
+}
+.btn-delete:active {
+    background: var(--button-color);
+    color: var(--connection-red);
+    border-color: var(--connection-red);
+}
+
+/* New Token Display */
+#new-token-display {
+    display: none;
+    background: var(--chat-bg-color);
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    width: 100%;
+    margin-bottom: 10px;
+    border-radius: 3px;
+}
+.display-container {
+    max-width: 450px;
+    display: flex;
+    box-sizing: border-box;
+}
+#tokens-list {
+    width: 100%;
+}
+
+.token-secret {
+    font-family: 'unifont', monospace;
+    font-size: 14px;
+    word-break: break-all;
+    margin: 5px 0;
+    padding: 5px;
+    user-select: all;
+    background-color: var(--msg-bg-color);
+    border-radius: 3px;
+}
+.warning-text {
+    color: var(--text-color);
+    font-family: 'unifont', sans-serif;
+    font-size: 12px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+.create-form {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 5px;
+    max-width: 450px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.input-group {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+.create-form input {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    color: var(--text-color);
+    background-color: var(--chat-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    width: 100%;
+    padding: 3px 5px;
+    min-width: 0;
+    height: 23px;
+    box-sizing: border-box;
+}
+
+.create-form button {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    width: 80px;
+    color: var(--text-color);
+    background-color: var(--button-color);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    height: 23px;
+    padding: 0 10px 2px 10px;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.alert {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    color: var(--border-color);
+}
+
+input:focus {
+    outline: 1px solid var(--text-color);
+}
+button:hover {
+    background-color: var(--button-hover-color);
+}
+
+button:active {
+    background-color: var(--button-active-color);
+}
+
+.button-group {
+    margin-top: 10px;
+    display: flex;
+    justify-content: right;
+    gap: 5px;
+}
+.button-group button {
+    width: 60px;
+    height: 21px;
+    margin-left: 0;
+    padding: 0 10px 2px 10px;
+    box-sizing: border-box;
+    cursor: pointer;
+}
+
+.error-tip {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    font-family: 'unifont', sans-serif;
+    color: var(--text-color);
+    background-color: var(--popup-bg-color); /* Light mode default */
+    backdrop-filter: blur(2px);
+    --webkit-backdrop-filter: blur(2px);
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+}

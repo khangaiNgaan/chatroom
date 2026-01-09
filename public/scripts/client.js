@@ -245,7 +245,7 @@ function addMessage(sender, text, type, timestamp = Date.now()) {
     if (sender === currentUser) {
         senderSpan.style.color = "var(--my-nom-color)";
 
-    } else if (sender === "system" || sender === "caffeine") {
+    } else if (sender === "system" || sender === "caffeine" || sender === "console") {
         senderSpan.style.color = "var(--admin-nom-color)";
     } else {
         senderSpan.style.color = "var(--nom-color)";

@@ -2,4 +2,3 @@
 .wrangler/
 .dev.vars
 node_modules/
-bridge/

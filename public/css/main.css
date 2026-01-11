@@ -15,6 +15,7 @@
     --chat-bg-color: #eff3f7;
     --popup-bg-color: rgba(255, 255, 255, 0.5);
     --border-color: #808ea1;
+    --note-color: #69727d;
     --text-color: #444f5d;
     --highlight-color: #b7c2d0;
     --pre-code-color: #ced9e3;
@@ -35,6 +36,7 @@
     --chat-bg-color: #2e3640;
     --popup-bg-color: rgba(46, 54, 64, 0.5);
     --border-color: #555c68;
+    --note-color: #888e9d;
     --text-color: #e9f0f5;
     --highlight-color: #444f5d;
     --pre-code-color: #2e3640;
@@ -55,6 +57,7 @@
     --chat-bg-color: #ffffff;
     --popup-bg-color: #ffffff;
     --border-color: #777777;
+    --note-color: #777777;
     --text-color: #000000;
     --highlight-color: #cccccc;
     --pre-code-color: #dddddd;

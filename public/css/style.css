@@ -216,14 +216,14 @@ input:focus {
 .user-list-popup {
     display: none;
     position: absolute;
-    top: 18px;
+    top: 16px;
     right: 0; 
     margin-top: 5px;
     font-family: 'unifont', sans-serif;
     color: var(--text-color);
     background-color: var(--popup-bg-color);
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
     padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: 3px;
@@ -241,11 +241,11 @@ input:focus {
 }
 
 .user-group-title {
-    color: var(--border-color);
+    color: var(--note-color);
     margin-top: 8px;
     margin-bottom: 4px;
     font-size: 0.9em;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 0.5px solid var(--border-color);
     padding-bottom: 5px;
 }
 .user-group-title:first-child {

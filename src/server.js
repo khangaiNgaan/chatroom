@@ -11,6 +11,7 @@ export default {
         return new Response("Internal Server Error: JWT_SECRET is not configured.", { status: 500 });
     }
     const JWT_SECRET = new TextEncoder().encode(env.JWT_SECRET);
+    const ALLOWED_CHATROOMS = ["bulletin", "general", "irl", "news", "debug", "minecraft"];
 
     // ==================================================
     // 0. API: 获取当前用户信息 (GET /api/user)
@@ -325,7 +326,7 @@ export default {
     }
 
     // ==================================================
-    // 2.5 Access Token 管理 (GET/POST/DELETE /api/tokens)
+    //  Access Token 管理 (GET/POST/DELETE /api/tokens)
     // ==================================================
     if (url.pathname === "/api/tokens") {
         // 鉴权
@@ -396,9 +397,50 @@ export default {
     }
 
     // ==================================================
+    //  API: 获取在线用户 (GET /api/online-users)
+    // ==================================================
+    if (request.method === "GET" && url.pathname === "/api/online-users") {
+        // 鉴权
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+        try {
+            // 验证 JWT
+            await jwtVerify(cookies.session, JWT_SECRET);
+        } catch (e) {
+            return new Response(null, { status: 401 });
+        }
+
+        const results = [];
+        
+        await Promise.all(ALLOWED_CHATROOMS.map(async (roomName) => {
+            const id = env.CHAT_ROOM.idFromName(roomName);
+            const stub = env.CHAT_ROOM.get(id);
+            // 调用 DO 内部 API 获取该房间用户
+            const response = await stub.fetch("http://internal/users");
+            if (response.ok) {
+                const roomUsers = await response.json();
+                // 将房间名附加到用户数据中
+                roomUsers.forEach(u => {
+                    results.push({
+                        username: u.username,
+                        uid: u.uid,
+                        role: u.role,
+                        channel: roomName
+                    });
+                });
+            }
+        }));
+
+        return new Response(JSON.stringify({ success: true, users: results }), {
+            headers: { "Content-Type": "application/json" }
+        });
+    }
+
+    // ==================================================
     // 3. 聊天室 WebSocket 路由
     // ==================================================
-    const ALLOWED_CHATROOMS = ["bulletin", "general", "irl", "news", "debug", "minecraft"];
     const pathnameParts = url.pathname.split("/").filter(part => part.length > 0);
 
     if (pathnameParts[0] === "websocket") {
@@ -480,6 +522,31 @@ export class ChatRoom {
   }
 
   async fetch(request) {
+    const url = new URL(request.url);
+
+    // 处理内部获取用户列表的请求
+    if (url.pathname === "/users") {
+        // 提取当前会话中的唯一用户
+        const uniqueUsers = new Map();
+        
+        this.sessions.forEach(session => {
+            if (session.readyState === WebSocket.READY_STATE_OPEN && session.userData) {
+                // 使用 uid 作为 key 去重
+                if (!uniqueUsers.has(session.userData.uid)) {
+                    uniqueUsers.set(session.userData.uid, {
+                        username: session.userData.username,
+                        uid: session.userData.uid,
+                        role: session.userData.role
+                    });
+                }
+            }
+        });
+
+        return new Response(JSON.stringify(Array.from(uniqueUsers.values())), {
+            headers: { "Content-Type": "application/json" }
+        });
+    }
+
     if (request.headers.get("Upgrade") !== "websocket") {
       return new Response("Expected Upgrade: websocket", { status: 426 });
     }

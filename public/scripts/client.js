@@ -72,6 +72,111 @@ async function init() {
     }
 
     joinRoom(currentRoom);
+
+    // 在线人数轮询
+    fetchOnlineCount();
+    setInterval(fetchOnlineCount, 10000);
+
+    // 绑定 popup 点击事件
+    const onlineBtn = document.getElementById('online-users');
+    const onlinePopup = document.getElementById('online-users-popup');
+    
+    if (onlineBtn && onlinePopup) {
+        onlineBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isShowing = onlinePopup.classList.toggle('show');
+            // 高亮状态
+            onlineBtn.classList.toggle('active', isShowing);
+        });
+
+        // 点击外部关闭
+        document.addEventListener('click', (e) => {
+            if (!onlineBtn.contains(e.target) && !onlinePopup.contains(e.target)) {
+                onlinePopup.classList.remove('show');
+                onlineBtn.classList.remove('active');
+            }
+        });
+    }
+}
+
+// 函数：获取并更新在线人数及列表
+async function fetchOnlineCount() {
+    const onlineDisplay = document.getElementById('online-users');
+    const onlinePopup = document.getElementById('online-users-popup');
+    if (!onlineDisplay) return;
+
+    try {
+        const res = await fetch('/api/online-users');
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success) {
+                const users = data.users;
+                onlineDisplay.textContent = `${users.length} online`;
+
+                if (onlinePopup) {
+                    renderOnlineUsersPopup(onlinePopup, users);
+                }
+            }
+        } else if (res.status === 401) {
+            onlineDisplay.textContent = "auth required";
+        }
+    } catch (e) {
+        console.error("Failed to fetch online users:", e);
+        onlineDisplay.textContent = "error";
+    }
+}
+
+// 辅助函数：渲染 online user popup 内容
+function renderOnlineUsersPopup(container, users) {
+    container.innerHTML = "";
+    
+    if (users.length === 0) {
+        container.textContent = "no one online";
+        return;
+    }
+
+    // 分组逻辑
+    const currentRoomUsers = [];
+    const otherRoomUsers = {};
+
+    users.forEach(u => {
+        if (u.channel === currentRoom) {
+            currentRoomUsers.push(u);
+        } else {
+            if (!otherRoomUsers[u.channel]) {
+                otherRoomUsers[u.channel] = [];
+            }
+            otherRoomUsers[u.channel].push(u);
+        }
+    });
+
+    if (currentRoomUsers.length > 0) {
+        const title = document.createElement("div");
+        title.className = "user-group-title";
+        title.textContent = "current room";
+        container.appendChild(title);
+
+        currentRoomUsers.forEach(u => {
+            const item = document.createElement("div");
+            item.className = "user-list-item";
+            item.textContent = u.username;
+            container.appendChild(item);
+        });
+    }
+
+    for (const [channel, channelUsers] of Object.entries(otherRoomUsers)) {
+        const title = document.createElement("div");
+        title.className = "user-group-title";
+        title.textContent = `${channel}`;
+        container.appendChild(title);
+
+        channelUsers.forEach(u => {
+            const item = document.createElement("div");
+            item.className = "user-list-item";
+            item.textContent = u.username;
+            container.appendChild(item);
+        });
+    }
 }
 
 // 函数：渲染房间列表
@@ -117,7 +222,7 @@ function joinRoom(roomName) {
   
   // 4. 清空聊天界面
   chatWindow.innerHTML = ""; 
-  statusText.innerText = "Connecting...";
+  statusText.innerText = "connecting...";
   statusText.style.color = "var(--border-color)";
 
   // 5. 建立新连接
@@ -147,8 +252,9 @@ function updateActiveRoomUI(activeRoom) {
 function setupSocketListeners(socket) {
   socket.onopen = () => {
     console.log("连接成功");
-    statusText.innerText = "Connected";
+    statusText.innerText = "connected";
     statusText.style.color = "var(--connection-green)";
+    setTimeout(fetchOnlineCount, 500);
   };
 
   socket.onmessage = (event) => {
@@ -163,7 +269,7 @@ function setupSocketListeners(socket) {
   };
 
   socket.onclose = () => {
-    statusText.innerText = "Disconnected";
+    statusText.innerText = "disconnected";
     statusText.style.color = "var(--connection-red)";
     console.log("连接断开");
     

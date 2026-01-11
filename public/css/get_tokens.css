@@ -48,7 +48,6 @@
     border-color: var(--connection-red);
 }
 
-/* New Token Display */
 #new-token-display {
     display: none;
     background: var(--chat-bg-color);
@@ -166,7 +165,7 @@ button:active {
     left: 0;
     font-family: 'unifont', sans-serif;
     color: var(--text-color);
-    background-color: var(--popup-bg-color); /* Light mode default */
+    background-color: var(--popup-bg-color);
     backdrop-filter: blur(2px);
     --webkit-backdrop-filter: blur(2px);
     padding: 6px 12px;

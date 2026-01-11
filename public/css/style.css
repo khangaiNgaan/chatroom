@@ -98,7 +98,7 @@
 .menu-item:hover {
     background-color: var(--msg-bg-color);
 }
-.menu-item:active {
+.menu-item:active, .menu-item.active {
     background-color: var(--msg-bg-color);
     border: 1px solid var(--border-color);
 }
@@ -192,4 +192,67 @@ input:focus {
     margin-bottom: 3px;
     padding: 0 10px 0 10px;
     display: flex;
+}
+
+.right-menu {
+    margin-left: auto;
+    font-family: 'unifont', sans-serif;
+    font-size: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: center; 
+    user-select: none;
+    box-sizing: border-box;
+    height: 100%; 
+}
+
+.menu-wrapper {
+    position: relative; 
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.user-list-popup {
+    display: none;
+    position: absolute;
+    top: 18px;
+    right: 0; 
+    margin-top: 5px;
+    font-family: 'unifont', sans-serif;
+    color: var(--text-color);
+    background-color: var(--popup-bg-color);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    text-align: left;
+    min-width: 120px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.user-list-popup.show {
+    display: block;
+}
+
+.user-group-title {
+    color: var(--border-color);
+    margin-top: 8px;
+    margin-bottom: 4px;
+    font-size: 0.9em;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+.user-group-title:first-child {
+    margin-top: 0;
+}
+
+.user-list-item {
+    padding: 3px 0;
+    display: block;
 }

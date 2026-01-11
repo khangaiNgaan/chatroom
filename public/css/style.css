@@ -176,7 +176,7 @@ input:focus {
     font-size: 12px;
     color: var(--border-color);
     text-align: left;
-    margin: 5px 0 6px 0;
+    margin: 5px 4px 6px 0;
     user-select: none;
 }
 

@@ -1,0 +1,93 @@
+/* sessions CSS */
+
+.session-item {
+    border: 1px solid var(--border-color);
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 3px;
+    background: var(--chat-bg-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+}
+
+.session-item.current {
+    border-color: var(--text-color);
+    box-shadow: 0 0 2px var(--border-color);
+}
+
+.session-info {
+    text-align: left;
+    flex-grow: 1;
+    margin-right: 10px;
+}
+
+.session-meta {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.session-ip {
+    font-weight: bold;
+}
+
+.session-details {
+    font-family: 'unifont', monospace;
+    color: var(--border-color);
+    font-size: 12px;
+    display: block;
+    line-height: 1.4;
+}
+
+.current-badge {
+    display: inline-block;
+    background-color: var(--text-color);
+    color: var(--bg-color);
+    font-size: 10px;
+    padding: 1px 4px;
+    margin-left: 5px;
+}
+
+.btn-revoke {
+    color: var(--connection-red);
+    border: 1px solid var(--border-color);
+    background: transparent;
+    padding: 2px 10px 3px 10px;
+    cursor: pointer;
+    height: 23px;
+    font-size: 0.8em;
+    border-radius: 3px;
+    white-space: nowrap;
+    min-width: 60px;
+}
+
+.btn-revoke:hover {
+    background: var(--connection-red);
+    color: var(--button-color);
+    border-color: var(--connection-red);
+}
+
+.btn-revoke:active {
+    background: var(--button-color);
+    color: var(--connection-red);
+    border-color: var(--connection-red);
+}
+
+.loading {
+    text-align: center;
+    color: var(--border-color);
+    font-family: 'unifont', sans-serif;
+    margin: 20px 0;
+}
+
+.no-sessions {
+    text-align: center;
+    color: var(--border-color);
+    font-family: 'unifont', sans-serif;
+    margin: 20px 0;
+}

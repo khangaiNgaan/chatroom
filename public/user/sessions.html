@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>profile - cafe1chaT</title>
+    <title>sessions - cafe1chaT</title>
     <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -12,7 +12,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/profile.css">
+    <link rel="stylesheet" href="/css/sessions.css">
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -32,7 +32,6 @@
           }
       })();
     </script>
-	<script defer src="https://cloud.umami.is/script.js" data-website-id="cf3f6b51-a212-4d89-bad2-8d83e259075d"></script>
   </head>
   <body>
     <div class="box">
@@ -45,31 +44,15 @@
             </span>
           </div>
           
-          <div class="title" style="margin: 30px 0; font-size: 18px;">User Profile</div>
-          
-          <div id="profile-content">
-              <table class="profile-table">
-                  <tr>
-                      <td>uid</td>
-                      <td id="p-uid" class="loading-text">...</td>
-                  </tr>
-                  <tr>
-                      <td>username</td>
-                      <td id="p-username" class="loading-text">...</td>
-                  </tr>
-                  <tr>
-                      <td>role</td>
-                      <td id="p-role" class="loading-text">...</td>
-                  </tr>
-                  <tr>
-                      <td>joined</td>
-                      <td id="p-date" class="loading-text">...</td>
-                  </tr>
-              </table>
+          <div class="title" style="margin: 30px 0; font-size: 18px;">Active Sessions</div>
+
+          <div id="sessions-list" class="sessions-list">
+              <!-- Sessions will be loaded here -->
+              <div class="loading">loading sessions...</div>
           </div>
 
           <br>
-          <div class="flexEnd"><div class="back"><a href="/">&lt; back to chat</a></div> <div class="urlbtn"><a href="/user/get_tokens.html">access tokens</a> <a href="/user/sessions.html" style="margin-left: 20px;">sessions</a> <a style="margin-left: 20px;">settings</a></div></div>
+          <div class="back"><a href="/user/profile.html">&lt; back to profile</a></div>
         </div>
         <footer>
           <span class="copyright">Copyright (c) 2025-2026 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span>
@@ -78,8 +61,7 @@
     </div>
     <script src="/scripts/theme.js"></script>
     <script defer src="/scripts/favicon.js"></script>
-    <script src="/scripts/profile.js"></script>
     <script src="/scripts/version.js"></script>
+    <script src="/scripts/sessions.js"></script>
   </body>
 </html>
-  

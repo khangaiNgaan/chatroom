@@ -19,7 +19,7 @@ const ROOM_PLACEHOLDERS = {
     "news": "what's happening...",
     "debug": "debug the world...",
     "minecraft": "baked potatoes...",
-    "bulletin": "continuous iteration..."
+    "bulletin": "iteration..."
 };
 
 let currentSocket = null;
@@ -112,6 +112,7 @@ async function fetchOnlineCount() {
             if (data.success) {
                 const users = data.users;
                 onlineDisplay.textContent = `${users.length} online`;
+                onlineDisplay.style.color = "var(--text-color)";
 
                 if (onlinePopup) {
                     renderOnlineUsersPopup(onlinePopup, users);
@@ -123,6 +124,7 @@ async function fetchOnlineCount() {
     } catch (e) {
         console.error("Failed to fetch online users:", e);
         onlineDisplay.textContent = "error";
+        onlineDisplay.style.color = "var(--text-color)";
     }
 }
 

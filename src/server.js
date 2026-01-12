@@ -26,6 +26,14 @@ export default {
         try {
             // 1. 验证 JWT
             const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+
+            // Check DB session if sessionId exists in payload
+            if (payload.sessionId) {
+                const sessionRecord = await env.DB.prepare("SELECT id FROM sessions WHERE id = ?").bind(payload.sessionId).first();
+                if (!sessionRecord) {
+                    throw new Error("Session invalid");
+                }
+            }
             
             // 2. 从数据库获取详细信息
             // 这样可以获取到 signup_date 等不在 Token 里的信息
@@ -54,6 +62,22 @@ export default {
     // 0. API: 登出 (POST /api/logout)
     // ==================================================
     if ((request.method === "POST" || request.method === "GET") && url.pathname === "/api/logout") {
+        // Try to delete session from DB
+        try {
+            const cookieHeader = request.headers.get("Cookie");
+            if (cookieHeader) {
+                const cookies = parse(cookieHeader);
+                if (cookies.session) {
+                    const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+                    if (payload.sessionId) {
+                        await env.DB.prepare("DELETE FROM sessions WHERE id = ?").bind(payload.sessionId).run();
+                    }
+                }
+            }
+        } catch (e) {
+            // Ignore errors during logout (e.g. invalid token)
+        }
+
         const isSecure = url.protocol === 'https:';
         const cookieHeader = serialize('session', '', {
             httpOnly: true,
@@ -63,8 +87,7 @@ export default {
             path: '/'
         });
         
-        // 如果是 GET 请求 (比如链接点击)，重定向回首页
-        
+        // 如果是 GET 请求，重定向回首页
         if (request.method === "GET") {
              return new Response(null, {
                 status: 302,
@@ -118,8 +141,8 @@ export default {
             });
         }
 
-        // 验证用户名格式 (仅允许字母、数字、下划线、减号)
-        if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+        // 验证用户名格式 (仅允许字母、数字、下划线) 4-16字符
+        if (!/^\w{4,16}$/.test(username)) {
             return new Response(JSON.stringify({ success: false, message: "username contains invalid characters" }), { 
                 status: 400,
                 headers: { "Content-Type": "application/json" }
@@ -214,11 +237,22 @@ export default {
                 });
              }
 
+             // Create Session
+             const sessionId = crypto.randomUUID();
+             const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+             const userAgent = request.headers.get("User-Agent") || "unknown";
+             const expiresAt = Date.now() + (90 * 24 * 60 * 60 * 1000); // 90 days
+
+             await env.DB.prepare("INSERT INTO sessions (id, uid, ip, user_agent, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)")
+                .bind(sessionId, user.uid, ip, userAgent, Date.now(), expiresAt)
+                .run();
+
              // 生成 JWT (90天)
              const token = await new SignJWT({ 
                 uid: user.uid, 
                 username: user.username, 
-                role: user.role 
+                role: user.role,
+                sessionId: sessionId
              })
                 .setProtectedHeader({ alg: 'HS256' })
                 .setIssuedAt()
@@ -286,11 +320,21 @@ export default {
             });
         }
 
-        // 2.4 生成 JWT
+        // 2.4 Create Session & Generate JWT
+        const sessionId = crypto.randomUUID();
+        // ip is already defined above in the function
+        const userAgent = request.headers.get("User-Agent") || "unknown";
+        const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+
+        await env.DB.prepare("INSERT INTO sessions (id, uid, ip, user_agent, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind(sessionId, user.uid, ip, userAgent, Date.now(), expiresAt)
+            .run();
+
         const token = await new SignJWT({ 
             uid: user.uid, 
             username: user.username, 
-            role: user.role 
+            role: user.role,
+            sessionId: sessionId
         })
             .setProtectedHeader({ alg: 'HS256' })
             .setIssuedAt()
@@ -436,6 +480,59 @@ export default {
         return new Response(JSON.stringify({ success: true, users: results }), {
             headers: { "Content-Type": "application/json" }
         });
+    }
+
+    // ==================================================
+    //  API: 会话管理 (GET/DELETE /api/sessions)
+    // ==================================================
+    if (url.pathname === "/api/sessions") {
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+        
+        let payload;
+        try {
+             const jwtRes = await jwtVerify(cookies.session, JWT_SECRET);
+             payload = jwtRes.payload;
+        } catch (e) {
+             return new Response(null, { status: 401 });
+        }
+
+        // GET: List Sessions
+        if (request.method === "GET") {
+            // Clean up expired sessions first (lazy cleanup)
+            await env.DB.prepare("DELETE FROM sessions WHERE expires_at < ?").bind(Date.now()).run();
+
+            const sessions = await env.DB.prepare("SELECT * FROM sessions WHERE uid = ? ORDER BY created_at DESC")
+                .bind(payload.uid)
+                .all();
+            
+            // Mark current session
+            const results = sessions.results.map(s => ({
+                ...s,
+                is_current: s.id === payload.sessionId
+            }));
+
+            return new Response(JSON.stringify({ success: true, sessions: results }), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+
+        // DELETE: Revoke Session
+        if (request.method === "DELETE") {
+             const urlParams = new URLSearchParams(url.search);
+             const id = urlParams.get("id");
+             if (!id) return new Response("Missing id", { status: 400 });
+
+             await env.DB.prepare("DELETE FROM sessions WHERE id = ? AND uid = ?")
+                .bind(id, payload.uid)
+                .run();
+             
+             return new Response(JSON.stringify({ success: true }), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
     }
 
     // ==================================================

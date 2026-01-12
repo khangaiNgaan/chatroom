@@ -79,14 +79,14 @@
 }
 
 .loading {
-    text-align: center;
+    text-align: left;
     color: var(--border-color);
     font-family: 'unifont', sans-serif;
     margin: 20px 0;
 }
 
 .no-sessions {
-    text-align: center;
+    text-align: left;
     color: var(--border-color);
     font-family: 'unifont', sans-serif;
     margin: 20px 0;

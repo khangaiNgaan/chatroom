@@ -8,7 +8,7 @@ async function loadUserInfo() {
         const response = await fetch('/api/user');
         if (response.ok) {
             const user = await response.json();
-            document.getElementById('user-display').textContent = user.username;
+            document.getElementById('user-display').innerHTML = `Hi, ${user.username} (<a href="/api/logout">logout</a>) `;
         } else {
              window.location.href = '/auth/login.html';
         }

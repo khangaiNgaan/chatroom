@@ -774,7 +774,7 @@ export class ChatRoom {
     // message 已经是 JSON 字符串了
     this.history.push(message);
 
-    if (this.history.length > 20) {
+    if (this.history.length > 50) {
       this.history.shift(); 
     }
 

@@ -57,7 +57,6 @@ function renderSessions(sessions) {
         
         // Truncate UA if too long
         let ua = session.user_agent || 'unknown device';
-        if (ua.length > 80) ua = ua.substring(0, 80) + '...';
         
         const ip = session.ip || 'unknown IP';
         

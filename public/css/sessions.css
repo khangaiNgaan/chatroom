@@ -46,11 +46,14 @@
 
 .current-badge {
     display: inline-block;
-    background-color: var(--text-color);
-    color: var(--bg-color);
-    font-size: 10px;
-    padding: 1px 4px;
+    border: 1px solid var(--text-color);
+    color: var(--text-color);
+    font-size: 12px;
+    font-weight: bold;
+    padding: 1px 4px 2px 4px;
     margin-left: 5px;
+    border-radius: 2px;
+    box-sizing: border-box;
 }
 
 .btn-revoke {

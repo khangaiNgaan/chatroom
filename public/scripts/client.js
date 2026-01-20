@@ -25,6 +25,8 @@ const ROOM_PLACEHOLDERS = {
 let currentSocket = null;
 let currentRoom = "general";
 let currentUser = null; // 保存当前登录用户名
+let oldestMsgId = null; // 分页加载
+let isLoadingHistory = false; // 防抖
 
 /* 函数 */
 
@@ -50,7 +52,6 @@ async function init() {
         }
     } catch (e) {
         console.error("Auth check failed:", e);
-        // 网络错误是否要踢出？暂时保守点不踢，或者显示重试
     }
 
     renderRoomList();
@@ -70,6 +71,13 @@ async function init() {
             window.location.reload();
         });
     }
+
+    // 绑定滚动事件 (load more)
+    chatWindow.addEventListener('scroll', () => {
+        if (chatWindow.scrollTop === 0 && !isLoadingHistory && oldestMsgId) {
+            loadMoreMessages();
+        }
+    });
 
     joinRoom(currentRoom);
 
@@ -96,6 +104,48 @@ async function init() {
                 onlineBtn.classList.remove('active');
             }
         });
+    }
+}
+
+// 函数: 加载历史记录
+async function loadMoreMessages() {
+    if (isLoadingHistory || !oldestMsgId) return;
+    isLoadingHistory = true;
+
+    try {
+        const res = await fetch(`/api/room/${currentRoom}/history?cursor=${oldestMsgId}`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.success && data.messages.length > 0) {
+                // 记录当前的滚动高度和位置
+                const oldScrollHeight = chatWindow.scrollHeight;
+                const oldScrollTop = chatWindow.scrollTop;
+
+                // 更新 cursor 为这批数据中最老的一条
+                // data.messages 是 [Oldest, ..., Newest]
+                oldestMsgId = data.messages[0].msg_id;
+
+                // 倒序遍历
+                for (let i = data.messages.length - 1; i >= 0; i--) {
+                    const msg = data.messages[i];
+                    const senderName = msg.sender_username || msg.sender || "anonymous";
+                    addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "prepend", msg.is_deleted, msg.is_censored);
+                }
+
+                // 恢复滚动位置
+                // 新的 scrollHeight - 旧的 scrollHeight = 增加的高度
+                const newScrollHeight = chatWindow.scrollHeight;
+                chatWindow.scrollTop = newScrollHeight - oldScrollHeight;
+
+            } else {
+                console.log("No more history.");
+                oldestMsgId = null; 
+            }
+        }
+    } catch (e) {
+        console.error("Load history failed:", e);
+    } finally {
+        isLoadingHistory = false;
     }
 }
 
@@ -218,6 +268,8 @@ function joinRoom(roomName) {
 
   // 3. 更新 UI 状态
   currentRoom = roomName;
+  oldestMsgId = null; // 重置分页 cursor
+  isLoadingHistory = false;
   updateActiveRoomUI(roomName);
 
   messageInput.placeholder = ROOM_PLACEHOLDERS[roomName] || "input...";
@@ -253,6 +305,7 @@ function updateActiveRoomUI(activeRoom) {
 // 函数：WebSocket 事件监听绑定
 function setupSocketListeners(socket) {
   socket.onopen = () => {
+    if (socket !== currentSocket) return;
     console.log("连接成功");
     statusText.innerText = "connected";
     statusText.style.color = "var(--connection-green)";
@@ -263,7 +316,13 @@ function setupSocketListeners(socket) {
     console.log("收到:", event.data);
     try {
         const msg = JSON.parse(event.data);
-        addMessage(msg.sender, msg.text, "received", msg.timestamp);
+        // 初始化 cursor: 记录收到的第一条消息 ID (最老的一条)
+        if (oldestMsgId === null && msg.msg_id) {
+            oldestMsgId = msg.msg_id;
+        }
+
+        const senderName = msg.sender_username || msg.sender || "anonymous";
+        addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "append", msg.is_deleted, msg.is_censored);
     } catch (e) {
         // 向后兼容
         addMessage("anonymous", event.data, "received");
@@ -271,6 +330,7 @@ function setupSocketListeners(socket) {
   };
 
   socket.onclose = () => {
+    if (socket !== currentSocket) return;
     statusText.innerText = "disconnected";
     statusText.style.color = "var(--connection-red)";
     console.log("连接断开");
@@ -296,7 +356,7 @@ chatForm.addEventListener('submit', (e) => {
     const text = messageInput.value;
     if (!text) return; // 如果是空的则不发送
 
-    // 乐观 UI: 使用真实用户名
+    // 乐观 UI
     addMessage(currentUser, text, "sent", Date.now());
 
     // 发送给服务器
@@ -329,11 +389,43 @@ function formatDate(timestamp) {
     return `${y}-${m}-${d} ${h}:${min}:${s}`;
 }
 
+// 辅助函数: 解析换行并安全添加到元素
+function appendTextWithBr(container, text) {
+    const parts = text.split('<br>');
+    parts.forEach((part, index) => {
+        if (index > 0) {
+            container.appendChild(document.createElement('br'));
+        }
+        container.appendChild(document.createTextNode(part));
+    });
+}
+
 // 辅助函数：添加消息到屏幕
-function addMessage(sender, text, type, timestamp = Date.now()) {
+function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, method = "append", isDeleted = false, isCensored = false) {
+    // 检查是否存在: 如果存在则更新内容
+    if (msgId) {
+        const existingDiv = document.querySelector(`.message[data-msg-id="${msgId}"]`);
+        if (existingDiv) {
+            const contentDiv = existingDiv.lastElementChild;
+            if (contentDiv) {
+                const cleanedText = cleanMessage(text);
+                contentDiv.innerHTML = ""; // 清空
+                appendTextWithBr(contentDiv, cleanedText);
+                
+                if (isDeleted || isCensored) {
+                    contentDiv.style.color = "var(--border-color)";
+                }
+            }
+            return;
+        }
+    }
+
     const div = document.createElement('div');
     div.className = 'message';
     div.style.marginBottom = "10px"; // 增加一点消息间距
+    if (msgId) {
+        div.dataset.msgId = msgId;
+    }
     
     text = cleanMessage(text);
     
@@ -375,17 +467,31 @@ function addMessage(sender, text, type, timestamp = Date.now()) {
     contentDiv.style.lineHeight = "1.4";
     contentDiv.style.fontWeight = "normal";
     
-    // 使用 createTextNode 防止 XSS
-    const textNode = document.createTextNode(text); 
-    contentDiv.appendChild(textNode);
+    if (isDeleted || isCensored) {
+        contentDiv.style.color = "var(--border-color)";
+    }
+
+    // 解析换行
+    appendTextWithBr(contentDiv, text);
 
     // --- 拼装 ---
     div.appendChild(headerDiv);
     div.appendChild(contentDiv);
 
     // 上墙
-    chatWindow.appendChild(div);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
+    if (method === "prepend") {
+        chatWindow.prepend(div);
+    } else {
+        // append: 智能滚动
+        // 如果用户已经在底部附近 (<100px)，或者消息是自己发的，就自动滚动
+        const isNearBottom = chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight < 100;
+        
+        chatWindow.appendChild(div);
+        
+        if (type === "sent" || isNearBottom) {
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+    }
 }
 
 /* 启动 */

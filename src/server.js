@@ -989,15 +989,15 @@ export class ChatRoom {
 
                 if (command === "/help") {
                     let helpText = "Commands:<br>";
-                    helpText += "/del <msg-id> <br>* soft delete your own message<br>";
+                    helpText += "/del <msg-id> (soft delete your own message)<br>";
                     
                     if (socket.userData.role === 'admin') {
-                        helpText += "ADMIN ONLY:<br>";
-                        helpText += "/clear <br>* clear all messages in this room<br>";
-                        helpText += "/wipe <msg-id> <br>* permanently remove a message<br>";
-                        helpText += "/censor <msg-id> <reason> <br>* censor a message with optional reason<br>";
-                        helpText += "/insert <timestamp> <text> <br>* insert a message at specific time<br>";
-                        helpText += "/legacy <text> <br>* test legacy migration logic<br>";
+                        helpText += "<br>Admin Commands:<br>";
+                        helpText += "/clear (clear all messages in this room)<br>";
+                        helpText += "/wipe <msg-id> (permanently remove a message)<br>";
+                        helpText += "/censor <msg-id> <reason> (censor a message with optional reason)<br>";
+                        helpText += "/insert <timestamp> <text> (insert a message at specific time)<br>";
+                        helpText += "/legacy <text> (test legacy migration logic)<br>";
                     }
 
                     socket.send(JSON.stringify({

@@ -1,6 +1,4 @@
-### cafe1chaT
-
-/ˈkaːfeɪʃat/
+### coffeeCafe
 
 An open-source, lightweight chatroom implementation built with Vanilla JS.
 

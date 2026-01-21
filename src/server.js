@@ -718,9 +718,6 @@ export class ChatRoom {
         socket.userData = { username, role, uid, roomName };
         this.sessions.push(socket);
         
-        // 迁移可能存在的旧数据
-        await this.migrateHistory(roomName);
-        
         // 推送最近的历史消息
         await this.pushRecentHistory(socket);
 
@@ -954,39 +951,6 @@ export class ChatRoom {
                     return;
                 }
 
-                if (command === "/legacy") {
-                    if (socket.userData.role !== 'admin') {
-                         socket.send(JSON.stringify({
-                            sender_username: "system",
-                            text: "permission denied.",
-                            timestamp: Date.now()
-                        }));
-                        return;
-                    }
-
-                    const text = args.slice(1).join(" ");
-                    // 模拟旧消息格式
-                    const oldMsg = {
-                        sender: socket.userData.username,
-                        text: text || "legacy message test",
-                        timestamp: Date.now()
-                    };
-
-                    // 写入 history 数组
-                    let history = await this.state.storage.get("history") || [];
-                    if (!Array.isArray(history)) history = [];
-                    history.push(oldMsg);
-                    
-                    await this.state.storage.put("history", history);
-
-                    socket.send(JSON.stringify({
-                        sender_username: "system",
-                        text: "legacy message added to 'history'. refresh to trigger migration.",
-                        timestamp: Date.now()
-                    }));
-                    return;
-                }
-
                 if (command === "/help") {
                     let helpText = "Commands:<br>";
                     helpText += "/del <msg-id> (soft delete your own message)<br>";
@@ -997,7 +961,6 @@ export class ChatRoom {
                         helpText += "/wipe <msg-id> (permanently remove a message)<br>";
                         helpText += "/censor <msg-id> <reason> (censor a message with optional reason)<br>";
                         helpText += "/insert <timestamp> <text> (insert a message at specific time)<br>";
-                        helpText += "/legacy <text> (test legacy migration logic)<br>";
                     }
 
                     socket.send(JSON.stringify({
@@ -1095,105 +1058,6 @@ export class ChatRoom {
                 sender: msg.sender_username || msg.sender 
             };
             socket.send(JSON.stringify(compatibleMsg));
-        }
-    }
-
-    // 迁移旧数据
-    async migrateHistory(roomName) {
-        // 1. 迁移旧 history 数组
-        const oldHistory = await this.state.storage.get("history");
-        if (oldHistory && Array.isArray(oldHistory) && oldHistory.length > 0) {
-            console.log(`Migrating ${oldHistory.length} messages for room ${roomName}...`);
-
-            const parsedMsgs = [];
-            const usernames = new Set();
-
-            for (const msg of oldHistory) {
-                let sender = "anonymous";
-                let text = "";
-                let timestamp = 0;
-                
-                if (typeof msg === 'string') {
-                    try {
-                        const parsed = JSON.parse(msg);
-                        sender = parsed.sender || "anonymous";
-                        text = parsed.text || msg;
-                        timestamp = parsed.timestamp || 0;
-                    } catch (e) {
-                        text = msg;
-                    }
-                } else {
-                    sender = msg.sender || "anonymous";
-                    text = msg.text || "";
-                    timestamp = msg.timestamp || 0;
-                }
-                
-                if (sender !== "anonymous" && sender !== "system") {
-                    usernames.add(sender);
-                }
-                parsedMsgs.push({ sender, text, timestamp });
-            }
-
-            const uidMap = new Map();
-            if (usernames.size > 0 && this.env.DB) {
-                for (const user of usernames) {
-                    try {
-                        const u = await this.env.DB.prepare("SELECT uid FROM users WHERE username = ?").bind(user).first();
-                        if (u) {
-                            uidMap.set(user, u.uid);
-                        }
-                    } catch (e) {
-                        console.error(`Failed to lookup uid for ${user}:`, e);
-                    }
-                }
-            }
-
-            const newMessages = {};
-            
-            for (const p of parsedMsgs) {
-                const newId = this.generateMsgId(p.timestamp); 
-                
-                let uid = "00000";
-                if (uidMap.has(p.sender)) {
-                    uid = uidMap.get(p.sender);
-                } else if (p.sender === "system") {
-                    uid = "00001";
-                }
-
-                const newMsg = {
-                    msg_id: newId,
-                    sender_username: p.sender,
-                    sender_uid: uid,
-                    channel: roomName, 
-                    timestamp: p.timestamp,
-                    text: p.text,
-                    is_migrated: true
-                };
-                
-                newMessages[newId] = newMsg;
-            }
-
-            await this.state.storage.put(newMessages);
-            await this.state.storage.delete("history");
-            console.log("Migration complete.");
-        }
-
-        // 2. 修复 统一 system uid 为 00001
-        const list = await this.state.storage.list({ prefix: "msg-" });
-        const updates = {};
-        let needsUpdate = false;
-
-        for (const [key, msg] of list) {
-            if (msg.sender_uid === "system") {
-                msg.sender_uid = "00001";
-                updates[key] = msg;
-                needsUpdate = true;
-            }
-        }
-
-        if (needsUpdate) {
-            await this.state.storage.put(updates);
-            console.log(`Fixed ${Object.keys(updates).length} system messages with legacy UID.`);
         }
     }
 

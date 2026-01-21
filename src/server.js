@@ -789,7 +789,7 @@ export class ChatRoom {
                     const wipeMsg = {
                         msg_id: this.generateMsgId(),
                         sender_username: "system",
-                        sender_uid: "system",
+                        sender_uid: "00001",
                         channel: roomName,
                         text: `message ${targetMsgId} wiped by ${socket.userData.username}.`,
                         timestamp: Date.now()
@@ -840,7 +840,7 @@ export class ChatRoom {
                     const delNotify = {
                         msg_id: this.generateMsgId(),
                         sender_username: "system",
-                        sender_uid: "system",
+                        sender_uid: "00001",
                         channel: roomName,
                         text: `message ${targetMsgId} (${originalText}) from ${new Date(originalTime).toISOString()} was deleted.`,
                         timestamp: Date.now()
@@ -901,7 +901,7 @@ export class ChatRoom {
                     const censorNotify = {
                         msg_id: this.generateMsgId(),
                         sender_username: "system",
-                        sender_uid: "system",
+                        sender_uid: "00001",
                         channel: roomName,
                         text: `message ${targetMsgId} (${originalText}) was censored by ${socket.userData.username}.`,
                         timestamp: Date.now()
@@ -1100,87 +1100,101 @@ export class ChatRoom {
 
     // 迁移旧数据
     async migrateHistory(roomName) {
+        // 1. 迁移旧 history 数组
         const oldHistory = await this.state.storage.get("history");
-        if (!oldHistory || !Array.isArray(oldHistory) || oldHistory.length === 0) {
-            return; 
-        }
+        if (oldHistory && Array.isArray(oldHistory) && oldHistory.length > 0) {
+            console.log(`Migrating ${oldHistory.length} messages for room ${roomName}...`);
 
-        console.log(`Migrating ${oldHistory.length} messages for room ${roomName}...`);
+            const parsedMsgs = [];
+            const usernames = new Set();
 
-        // 1. 预处理: 解析消息并收集用户名
-        const parsedMsgs = [];
-        const usernames = new Set();
-
-        for (const msg of oldHistory) {
-            let sender = "anonymous";
-            let text = "";
-            let timestamp = 0;
-            
-            if (typeof msg === 'string') {
-                try {
-                    const parsed = JSON.parse(msg);
-                    sender = parsed.sender || "anonymous";
-                    text = parsed.text || msg;
-                    timestamp = parsed.timestamp || 0;
-                } catch (e) {
-                    text = msg;
-                }
-            } else {
-                sender = msg.sender || "anonymous";
-                text = msg.text || "";
-                timestamp = msg.timestamp || 0;
-            }
-            
-            if (sender !== "anonymous" && sender !== "system") {
-                usernames.add(sender);
-            }
-            parsedMsgs.push({ sender, text, timestamp });
-        }
-
-        // 2. 批量查询 UID
-        const uidMap = new Map();
-        if (usernames.size > 0 && this.env.DB) {
-            for (const user of usernames) {
-                try {
-                    const u = await this.env.DB.prepare("SELECT uid FROM users WHERE username = ?").bind(user).first();
-                    if (u) {
-                        uidMap.set(user, u.uid);
+            for (const msg of oldHistory) {
+                let sender = "anonymous";
+                let text = "";
+                let timestamp = 0;
+                
+                if (typeof msg === 'string') {
+                    try {
+                        const parsed = JSON.parse(msg);
+                        sender = parsed.sender || "anonymous";
+                        text = parsed.text || msg;
+                        timestamp = parsed.timestamp || 0;
+                    } catch (e) {
+                        text = msg;
                     }
-                } catch (e) {
-                    console.error(`Failed to lookup uid for ${user}:`, e);
+                } else {
+                    sender = msg.sender || "anonymous";
+                    text = msg.text || "";
+                    timestamp = msg.timestamp || 0;
+                }
+                
+                if (sender !== "anonymous" && sender !== "system") {
+                    usernames.add(sender);
+                }
+                parsedMsgs.push({ sender, text, timestamp });
+            }
+
+            const uidMap = new Map();
+            if (usernames.size > 0 && this.env.DB) {
+                for (const user of usernames) {
+                    try {
+                        const u = await this.env.DB.prepare("SELECT uid FROM users WHERE username = ?").bind(user).first();
+                        if (u) {
+                            uidMap.set(user, u.uid);
+                        }
+                    } catch (e) {
+                        console.error(`Failed to lookup uid for ${user}:`, e);
+                    }
                 }
             }
-        }
 
-        // 3. 转换并保存
-        const newMessages = {};
-        
-        for (const p of parsedMsgs) {
-            const newId = this.generateMsgId(p.timestamp); 
+            const newMessages = {};
             
-            let uid = "00000";
-            if (uidMap.has(p.sender)) {
-                uid = uidMap.get(p.sender);
-            } else if (p.sender === "system") {
-                uid = "system";
+            for (const p of parsedMsgs) {
+                const newId = this.generateMsgId(p.timestamp); 
+                
+                let uid = "00000";
+                if (uidMap.has(p.sender)) {
+                    uid = uidMap.get(p.sender);
+                } else if (p.sender === "system") {
+                    uid = "00001";
+                }
+
+                const newMsg = {
+                    msg_id: newId,
+                    sender_username: p.sender,
+                    sender_uid: uid,
+                    channel: roomName, 
+                    timestamp: p.timestamp,
+                    text: p.text,
+                    is_migrated: true
+                };
+                
+                newMessages[newId] = newMsg;
             }
 
-            const newMsg = {
-                msg_id: newId,
-                sender_username: p.sender,
-                sender_uid: uid,
-                channel: roomName, 
-                timestamp: p.timestamp,
-                text: p.text,
-                is_migrated: true
-            };
-            
-            newMessages[newId] = newMsg;
+            await this.state.storage.put(newMessages);
+            await this.state.storage.delete("history");
+            console.log("Migration complete.");
         }
 
-        await this.state.storage.put(newMessages);
-        await this.state.storage.delete("history");
-        console.log("Migration complete.");
+        // 2. 修复 统一 system uid 为 00001
+        const list = await this.state.storage.list({ prefix: "msg-" });
+        const updates = {};
+        let needsUpdate = false;
+
+        for (const [key, msg] of list) {
+            if (msg.sender_uid === "system") {
+                msg.sender_uid = "00001";
+                updates[key] = msg;
+                needsUpdate = true;
+            }
+        }
+
+        if (needsUpdate) {
+            await this.state.storage.put(updates);
+            console.log(`Fixed ${Object.keys(updates).length} system messages with legacy UID.`);
+        }
     }
 
     broadcast(message, senderSocket) {

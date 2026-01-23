@@ -784,7 +784,6 @@ export class ChatRoom {
                     await this.state.storage.delete(targetMsgId);
 
                     const wipeMsg = {
-                        msg_id: this.generateMsgId(),
                         sender_username: "system",
                         sender_uid: "00001",
                         channel: roomName,
@@ -835,7 +834,6 @@ export class ChatRoom {
                     await this.state.storage.put(targetMsgId, msg);
 
                     const delNotify = {
-                        msg_id: this.generateMsgId(),
                         sender_username: "system",
                         sender_uid: "00001",
                         channel: roomName,
@@ -896,7 +894,6 @@ export class ChatRoom {
 
                     // 发送操作反馈
                     const censorNotify = {
-                        msg_id: this.generateMsgId(),
                         sender_username: "system",
                         sender_uid: "00001",
                         channel: roomName,

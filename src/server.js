@@ -1052,10 +1052,9 @@ export class ChatRoom {
         const messages = Array.from(list.values()).reverse(); // 按时间正序
 
         for (const msg of messages) {
-            // 兼容旧前端
             const compatibleMsg = {
                 ...msg,
-                sender: msg.sender_username || msg.sender 
+                sender: msg.sender_username 
             };
             socket.send(JSON.stringify(compatibleMsg));
         }

@@ -256,3 +256,16 @@ input:focus {
     padding: 3px 0;
     display: block;
 }
+
+.msg-id-copy {
+    opacity: 0;
+    cursor: pointer;
+    color: var(--border-color);
+    margin-left: 10px;
+    user-select: none;
+    font-size: 0.85em;
+}
+
+.message:hover .msg-id-copy {
+    opacity: 1;
+}

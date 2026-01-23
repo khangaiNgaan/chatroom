@@ -458,8 +458,29 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     timeSpan.style.fontSize = "0.85em";
     timeSpan.style.fontFamily = "'unifont', monospace";
 
+    // copy msg-id 按钮
+    const copySpan = document.createElement('span');
+    copySpan.textContent = "#";
+    copySpan.className = "msg-id-copy";
+    copySpan.title = "msg-id";
+    
+    if (msgId) {
+        copySpan.addEventListener('click', () => {
+            navigator.clipboard.writeText(msgId).then(() => {
+                const originalText = copySpan.textContent;
+                copySpan.textContent = "✓";
+                setTimeout(() => {
+                    copySpan.textContent = originalText;
+                }, 1000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        });
+    }
+
     headerDiv.appendChild(senderSpan);
     headerDiv.appendChild(timeSpan);
+    if (msgId) headerDiv.appendChild(copySpan);
 
     // --- 第二行：内容 ---
     const contentDiv = document.createElement('div');

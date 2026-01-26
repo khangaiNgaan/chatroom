@@ -263,6 +263,7 @@ export default {
                 const cookieHeader = serialize('session', token, {
                     httpOnly: true,
                     secure: isSecure, 
+                    domain: env.COOKIE_DOMAIN,
                     sameSite: 'lax',
                     maxAge: 60 * 60 * 24 * 90, 
                     path: '/'
@@ -348,6 +349,7 @@ export default {
             const cookieHeader = serialize('session', token, {
                 httpOnly: true,
                 secure: isSecure, 
+                domain: env.COOKIE_DOMAIN,
                 sameSite: 'lax',
                 maxAge: 60 * 60 * 24 * 7, // 7天
                 path: '/'

@@ -557,6 +557,37 @@ export default {
     }
 
     // ==================================================
+    // 5. API: 导出记录 (GET /api/room/:room/export)
+    // ==================================================
+    const exportMatch = url.pathname.match(/^\/api\/room\/([^/]+)\/export$/);
+    if (request.method === "GET" && exportMatch) {
+        const roomName = exportMatch[1];
+        if (!ALLOWED_CHATROOMS.includes(roomName)) {
+            return new Response("room not found", { status: 404 });
+        }
+        
+        // 鉴权
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response("Unauthorized", { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response("Unauthorized", { status: 401 });
+        try {
+            await jwtVerify(cookies.session, JWT_SECRET);
+        } catch (e) {
+            return new Response("Unauthorized", { status: 401 });
+        }
+
+        const id = env.CHAT_ROOM.idFromName(roomName);
+        const stub = env.CHAT_ROOM.get(id);
+        
+        // 转发请求到 DO (内部路径 /export)
+        const doUrl = new URL("http://internal/export");
+        doUrl.search = url.search; // 保留 limit 参数
+        
+        return stub.fetch(new Request(doUrl, request));
+    }
+
+    // ==================================================
     // 3. 聊天室 WebSocket 路由
     // ==================================================
     const pathnameParts = url.pathname.split("/").filter(part => part.length > 0);
@@ -661,6 +692,12 @@ export class ChatRoom {
         if (url.pathname === "/history") {
             const cursor = url.searchParams.get("cursor");
             return this.getHistory(cursor);
+        }
+
+        // API 导出历史记录 (用于 /save 命令)
+        if (url.pathname === "/export") {
+            const limitParam = url.searchParams.get("limit");
+            return this.exportHistory(limitParam);
         }
 
         if (request.headers.get("Upgrade") !== "websocket") {
@@ -953,6 +990,7 @@ export class ChatRoom {
                 if (command === "/help") {
                     let helpText = "Commands:<br>";
                     helpText += "/del <msg-id> (soft delete your own message)<br>";
+                    helpText += "/save (save chat history in this room)<br>";
                     
                     if (socket.userData.role === 'admin') {
                         helpText += "<br>Admin Commands:<br>";
@@ -1037,6 +1075,69 @@ export class ChatRoom {
         messages.reverse();
 
         return new Response(JSON.stringify({ success: true, messages }), {
+            headers: { "Content-Type": "application/json" }
+        });
+    }
+
+    // 辅助函数: 导出历史消息 (全量或指定数量)
+    async exportHistory(limitParam) {
+        let limit = Infinity;
+        if (limitParam && limitParam !== "all") {
+            limit = parseInt(limitParam, 10);
+            if (isNaN(limit) || limit <= 0) {
+                 return new Response("Invalid limit", { status: 400 });
+            }
+        }
+
+        // DO storage.list 有单次返回限制
+        // 请求 all 可能需分页拉取全部
+        
+        const allMessages = [];
+        let cursor = null;
+        let hasMore = true;
+
+        while (hasMore) {
+            const options = {
+                prefix: "msg-",
+                limit: 1000, 
+                reverse: true // 从新到旧
+            };
+            
+            // 如果有限制，且剩余需要的数量小于 1000，则只取需要的
+            if (limit !== Infinity) {
+                const remaining = limit - allMessages.length;
+                if (remaining <= 0) break;
+                if (remaining < 1000) options.limit = remaining;
+            }
+
+            if (cursor) {
+                options.end = cursor;
+            }
+
+            const list = await this.state.storage.list(options);
+            const batch = Array.from(list.values());
+            
+            if (batch.length === 0) {
+                hasMore = false;
+            } else {
+                allMessages.push(...batch);
+                // 更新 cursor 为这批里最旧的一条的 key
+                // 因为是 reverse: true, 所以 list 是按 key 倒序排列的
+                // 下一次 list(end=cursor) 会从这个 key 之前开始找
+                cursor = Array.from(list.keys()).pop();
+                
+                // 到底了
+                if (batch.length < options.limit) {
+                    hasMore = false;
+                }
+            }
+        }
+
+        // 此时 allMessages 是按时间倒序的 (新 -> 旧)
+        // 导出通常按时间正序 (旧 -> 新)
+        allMessages.reverse();
+
+        return new Response(JSON.stringify({ success: true, messages: allMessages }), {
             headers: { "Content-Type": "application/json" }
         });
     }

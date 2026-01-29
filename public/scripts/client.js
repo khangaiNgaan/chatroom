@@ -349,12 +349,126 @@ function setupSocketListeners(socket) {
   };
 }
 
+// 辅助函数: 生成带时区的 ISO 字符串
+// 例: 2026-01-27T04:00:00+08:00
+function formatLocalISOString(date) {
+    const pad = (n) => n.toString().padStart(2, '0');
+    const year = date.getFullYear();
+    const month = pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hour = pad(date.getHours());
+    const minute = pad(date.getMinutes());
+    const second = pad(date.getSeconds());
+    
+    const timezoneOffset = -date.getTimezoneOffset();
+    const diffSign = timezoneOffset >= 0 ? '+' : '-';
+    const diffHour = pad(Math.floor(Math.abs(timezoneOffset) / 60));
+    const diffMin = pad(Math.abs(timezoneOffset) % 60);
+    
+    return `${year}-${month}-${day}T${hour}:${minute}:${second}${diffSign}${diffHour}:${diffMin}`;
+}
+
+// 辅助函数: 处理 /save 命令
+async function handleSaveCommand(text) {
+    const args = text.trim().split(/\s+/);
+    const cmd = args[0];
+    const param = args[1];
+
+    if (cmd !== "/save") return false;
+
+    // 参数验证
+    let limit = "all";
+    if (!param) {
+        // 打印帮助
+        addMessage("system", "usage: /save all OR /save <num>", "received");
+        return true;
+    }
+    if (param === "all") {
+        limit = "all";
+    } else if (/^\d+$/.test(param)) {
+        const count = parseInt(param, 10);
+        if (count > 0) {
+            limit = count;
+        } else {
+            addMessage("system", "Number must be greater than 0.<br>usage: /save all OR /save <num>", "received");
+            return true;
+        }
+    } else {
+        addMessage("system", "Invalid parameter.<br>usage: /save all OR /save <num>", "received");
+        return true;
+    }
+
+    addMessage("system", `Exporting ${limit === 'all' ? 'all' : limit} messages, please wait...`, "received");
+
+    try {
+        const res = await fetch(`/api/room/${currentRoom}/export?limit=${limit}`);
+        if (!res.ok) {
+            throw new Error(`Server returned ${res.status}`);
+        }
+        
+        const data = await res.json();
+        if (!data.success || !data.messages || data.messages.length === 0) {
+            addMessage("system", "No messages found to save.", "received");
+            return true;
+        }
+
+        const messagesToSave = data.messages;
+
+        // 生成 CSV 内容
+        let csvContent = "msg-timestamp-hex,datetime,uid,username,text\n";
+
+        messagesToSave.forEach(msg => {
+            const date = new Date(msg.timestamp);
+            const timeStr = formatLocalISOString(date);
+            
+            // CSV 转义
+            const safeText = `"${(msg.text || "").replace(/"/g, '""')}"`;
+            
+            // 字段处理
+            const uid = msg.sender_uid;
+            const username = msg.sender_username;
+
+            csvContent += `${msg.msg_id},${timeStr},${uid},${username},${safeText}\n`;
+        });
+
+        // 生成文件名: chatroom_datetime(count).txt
+        const nowStr = formatLocalISOString(new Date());
+        const filename = `${currentRoom}_${nowStr}(${messagesToSave.length}).txt`;
+
+        // 创建 Blob 并触发下载
+        const blob = new Blob([csvContent], { type: 'text/plain;charset=utf-8;' }); 
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        addMessage("system", `Saved ${messagesToSave.length} messages to ${filename}`, "received");
+
+    } catch (e) {
+        console.error("Export failed:", e);
+        addMessage("system", `Export failed: ${e.message}`, "received");
+    }
+
+    return true;
+}
+
 // 核心函数：发送逻辑 
-chatForm.addEventListener('submit', (e) => {
+chatForm.addEventListener('submit', async (e) => {
     e.preventDefault(); // 阻止页面刷新
     
     const text = messageInput.value;
     if (!text) return; // 如果是空的则不发送
+
+    // 拦截 /save 命令
+    if (text.startsWith("/save")) {
+        messageInput.value = '';
+        await handleSaveCommand(text);
+        return;
+    }
 
     // 乐观 UI
     addMessage(currentUser, text, "sent", Date.now());
@@ -462,7 +576,6 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     const copySpan = document.createElement('span');
     copySpan.textContent = "#";
     copySpan.className = "msg-id-copy";
-    copySpan.title = "msg-id";
     
     if (msgId) {
         copySpan.addEventListener('click', () => {

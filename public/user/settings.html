@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>access tokens - coffeeroom</title>
+    <title>security - coffeeroom</title>
     <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -12,7 +12,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/get_tokens.css">
+    <link rel="stylesheet" href="/css/settings.css">
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -44,29 +44,39 @@
             </span>
           </div>
           
-          <div class="title" style="margin: 30px 0; font-size: 18px;">Access Tokens</div>
+          <div class="title" style="margin: 30px 0 20px 0; font-size: 18px;">Account Settings</div>
+          <div class="title" style="margin: 30px 0 20px 0;">Change Password</div>
+          <div style="font-size: 14px;"><a href="/user/change_password.html">Change your password &gt;</a></div>
+          <div class="note" style="margin: 10px 0;">Change your password at any time.</div>
+          <div class="title" style="margin: 30px 0 20px 0;">Access Tokens</div>
+          <div style="font-size: 14px;"><a href="/user/get_tokens.html">Manage Access Tokens &gt;</a>
+          <div class="note" style="margin: 10px 0;">Access tokens could be used to login without a password and turnstile check.</div>
+          <div class="title" style="margin: 30px 0 20px 0;">Email</div>
+
+          <!-- 已绑定状态 -->
+          <div id="email-bound-section" style="display: none;">
+              <div style="font-size: 14px; margin-bottom: 5px; font-family: 'unifont', sans-serif;">Current: <span id="current-email" style="font-family: 'unifont', sans-serif;"></span> <span style="color:var(--success-color); font-size:14px;">(verified)</span></div>
+              <div style="font-size: 14px; margin-top: 20px;">
+                  <a href="/user/change_email.html">Change email &gt;</a>
+              </div>
+              <div style="font-size: 14px; margin-top: 5px;">
+                  <a href="/user/remove_email.html">Remove email &gt;</a>
+              </div>
+          </div>
+
+          <!-- 未绑定状态 -->
+          <div id="email-unbound-section" style="display: none;">
+              <div style="font-size: 14px;"><a href="/user/bind_email.html">Bind email &gt;</a></div>
+          </div>
           
-          <form id="create-token-form" class="create-form">
-                <div class="input-group"><input type="text" name="label" placeholder="token label" required maxlength="30"></div><button type="submit">generate</button>
-          </form>
-
-          <div class="display-container">
-            <div id="new-token-display">
-                <div style="font-family: 'unifont', sans-serif; color: var(--connection-green); font-size: 14px; margin-bottom: 15px; text-align: center;">Access Token Created</div>
-                <div class="token-secret" id="token-secret-text" style="text-align: center;"></div>
-                <div class="warning-text">Copy it now. It won't be shown again.</div>
-                <div class="button-group"><button id="copy-token-button">copy</button><button id="close-token-button">close</button></div>
-            </div>
-          </div>
-
-          <div class="display-container">
-            <div id="tokens-list">
-                <div class="alert">loading...</div>
-            </div>
-          </div>
+          <div class="note" style="margin: 10px 0;">This is not required. If you want, you can bind your email here.</div>
+          <div class="title" style="margin: 30px 0 20px 0;">2FA Settings</div>
+          <div class="note" style="margin: 10px 0;">Enable two-factor authentication (2FA) can help to protect your account from unauthorized access.</div>
+          <div class="title" style="margin: 30px 0 20px 0;">Delete Account</div>
+          <div class="note" style="margin: 10px 0;">Delete your account permanently. This action is irreversible.</div>
 
           <br>
-          <div class="back"><a href="/user/settings.html">&lt; back to settings</a></div>
+          <div class="back"><a href="/user/profile.html">&lt; back to profile</a></div>
         </div>
         <footer>
           <span class="copyright">Copyright (c) 2025-2026 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span>
@@ -75,7 +85,7 @@
     </div>
     <script src="/scripts/theme.js"></script>
     <script defer src="/scripts/favicon.js"></script>
-    <script src="/scripts/get_tokens.js"></script>
     <script src="/scripts/version.js"></script>
+    <script src="/scripts/settings.js"></script>
   </body>
 </html>

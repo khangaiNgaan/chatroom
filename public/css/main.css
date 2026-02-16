@@ -23,10 +23,10 @@
     --button-hover-color: #ecf1f4;
     --button-active-color: #dee4e8;
     --msg-bg-color: #e1eaf1;
-    --connection-green: #377e22;
-    --connection-red: #ea3323;
-    --success-color: #377e22;
-    --error-color: #ea3323;
+    --connection-green: #347b68;
+    --connection-red: #c05858;
+    --success-color: #347b68;
+    --error-color: #c05858;
     --my-nom-color: #5d8dc7;
     --admin-nom-color: #d79a40;
     --nom-color: #d868a3;
@@ -119,6 +119,7 @@ html {
 a {
     color: var(--text-color);
     cursor: pointer;
+    font-family: 'unifont', sans-serif;
 }
 
 a:hover {
@@ -227,4 +228,11 @@ li {
 
 button {
     font-weight: normal;
+}
+
+.note {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    color: var(--border-color);
+    line-height: 1.2;
 }

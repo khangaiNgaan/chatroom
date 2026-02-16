@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>access tokens - coffeeroom</title>
+    <title>change email - coffeeroom</title>
     <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -12,7 +12,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/get_tokens.css">
+    <link rel="stylesheet" href="/css/change_password.css">
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -44,25 +44,20 @@
             </span>
           </div>
           
-          <div class="title" style="margin: 30px 0; font-size: 18px;">Access Tokens</div>
+          <div class="title" style="margin: 30px 0 20px 0; font-size: 18px;">Change Email</div>
+          <div class="note" style="margin: 20px 0;">Enter your new email and current password to verify.<br>Please check your spam folder if you have not received the email.</div>
           
-          <form id="create-token-form" class="create-form">
-                <div class="input-group"><input type="text" name="label" placeholder="token label" required maxlength="30"></div><button type="submit">generate</button>
-          </form>
-
-          <div class="display-container">
-            <div id="new-token-display">
-                <div style="font-family: 'unifont', sans-serif; color: var(--connection-green); font-size: 14px; margin-bottom: 15px; text-align: center;">Access Token Created</div>
-                <div class="token-secret" id="token-secret-text" style="text-align: center;"></div>
-                <div class="warning-text">Copy it now. It won't be shown again.</div>
-                <div class="button-group"><button id="copy-token-button">copy</button><button id="close-token-button">close</button></div>
-            </div>
-          </div>
-
-          <div class="display-container">
-            <div id="tokens-list">
-                <div class="alert">loading...</div>
-            </div>
+          <div class="container-settings">
+            <div id="auth-message" class="auth-message"></div>
+            <form id="change-email-form">
+                <div class="input-group">
+                    <input type="email" id="email" name="email" placeholder="new email address" required />
+                </div>
+                <div class="input-group">
+                    <input type="password" id="password" name="password" placeholder="confirm password" required />
+                </div>
+                <button type="submit">verify and change</button>
+            </form>
           </div>
 
           <br>
@@ -70,12 +65,11 @@
         </div>
         <footer>
           <span class="copyright">Copyright (c) 2025-2026 <a href="https://caffeine.ink" target="_blank" rel="noopener noreferrer">caffeine-Ink</a>. Licensed under <a href="https://caffeine.ink/pages/agpl-3.0-standalone.html" target="_blank" rel="noopener noreferrer">AGPLv3</a>.</span>
-          <span class="version"><span class="app-ver"></span> (<a href="https://github.com/khangaiNgaan/chatroom" target="_blank" rel="noopener noreferrer">source code</a>)</span>
         </footer>
     </div>
     <script src="/scripts/theme.js"></script>
     <script defer src="/scripts/favicon.js"></script>
-    <script src="/scripts/get_tokens.js"></script>
     <script src="/scripts/version.js"></script>
+    <script src="/scripts/change_email.js"></script>
   </body>
 </html>

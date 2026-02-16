@@ -3,16 +3,14 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>login (AT) - coffeeroom</title>
+    <title>forgot password - coffeeroom</title>
     <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
     <link rel="manifest" href="/site.webmanifest">
-    <script defer src="/scripts/favicon.js"></script>
     <link rel="stylesheet" href="/css/auth.css">
-    <script src="/scripts/os_detect.js"></script>
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -32,17 +30,6 @@
           }
       })();
     </script>
-    <script defer src="https://cloud.umami.is/script.js" data-website-id="cf3f6b51-a212-4d89-bad2-8d83e259075d"></script>
-    <script>
-      (async function() {
-        try {
-          const res = await fetch('/api/user');
-          if (res.ok) {
-            window.location.href = '/';
-          }
-        } catch (e) {}
-      })();
-    </script>
   </head>
   <body>
     <div class="box">
@@ -52,24 +39,23 @@
           <span class="themebtn">theme: <a href="#" id="darkModeButton">auto</a></span>
           </div>
           <br>
-          <div class="title-auth">Token Login</div>
+          <div class="title-auth">Forgot Password</div>
           <div class="container">
             <div class="authbox">
-                <span class="text">Access Token Login</span><br>
-                <span class="text" style="color: var(--note-color); font-size: 12px;">Tokens are one-time use. You will be logged in for 90 days.</span>
+                <span class="text">Enter your email to reset password.</span><br>
+                <span class="text" style="color: var(--note-color); font-size: 12px;">Please also check your spam folder if the email is missing.</span>
             </div>
             <div class="authbox">
                 <div id="auth-message" class="auth-message"></div>
                 <br>
-                <form id="login-form" method="POST" action="/api/login">
-                        <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
-                        <div class="input-group"><input type="password" id="access_token" name="access_token" placeholder="access token (AT-...)" required /></div>
-                    <button type="submit">login</button>
+                <form id="forgot-form" method="POST" action="/api/auth/forgot-password">
+                    <div class="input-group"><input type="email" id="email" name="email" placeholder="email address" required /></div>
+                    <button type="submit">send reset link</button>
                 </form>
                 <br>
             </div>
             <div class="authbox">
-                <span class="text">Back to <a href="/auth/login.html">password login</a>.</span>
+                <span class="text">Back to <a href="/auth/login.html">login</a>.</span>
             </div>
           </div>
           <br>
@@ -81,7 +67,7 @@
     </div>
     <script src="/scripts/theme.js"></script>
     <script>
-      const form = document.getElementById('login-form');
+      const form = document.getElementById('forgot-form');
       const msgBox = document.getElementById('auth-message');
 
       form.querySelectorAll('input').forEach(input => {
@@ -95,7 +81,6 @@
           });
       });
 
-      // 接管表单提交
       form.addEventListener('submit', async function(e) {
           e.preventDefault();
           msgBox.style.display = 'none';
@@ -104,7 +89,7 @@
           const formData = new FormData(form);
 
           try {
-              const res = await fetch('/api/login', {
+              const res = await fetch('/api/auth/forgot-password', {
                   method: 'POST',
                   body: formData
               });
@@ -115,10 +100,7 @@
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';
                   msgBox.classList.add('success');
-                  // 成功后延迟跳转
-                  setTimeout(() => {
-                      window.location.href = '/';
-                  }, 2000);
+                  form.querySelector('button').disabled = true;
               } else {
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';

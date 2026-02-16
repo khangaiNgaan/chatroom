@@ -5,7 +5,7 @@ import { SignJWT, jwtVerify } from 'jose';
 /* Worker 入口 */
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (!env.JWT_SECRET) {
         return new Response("Internal Server Error: JWT_SECRET is not configured.", { status: 500 });
@@ -37,7 +37,7 @@ export default {
             
             // 2. 从数据库获取详细信息
             // 这样可以获取到 signup_date 等不在 Token 里的信息
-            const user = await env.DB.prepare("SELECT uid, username, role, signup_date, email FROM users WHERE uid = ?")
+            const user = await env.DB.prepare("SELECT uid, username, role, signup_date, email, email_verified FROM users WHERE uid = ?")
                 .bind(payload.uid)
                 .first();
 
@@ -55,6 +55,357 @@ export default {
         } catch (e) {
             // Token 无效或过期
             return new Response(null, { status: 401 });
+        }
+    }
+
+    // ==================================================
+    // 0.1 API: 修改密码 (POST /api/user/change-password)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/user/change-password") {
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+
+        try {
+            const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+            const formData = await request.formData();
+            const oldPassword = formData.get("old-password");
+            const newPassword = formData.get("new-password");
+
+            if (!oldPassword || !newPassword) {
+                return new Response(JSON.stringify({ success: false, message: "missing parameters" }), { status: 400 });
+            }
+
+            // 获取用户当前密码
+            const user = await env.DB.prepare("SELECT password FROM users WHERE uid = ?").bind(payload.uid).first();
+            if (!user) return new Response(null, { status: 404 });
+
+            // 验证旧密码
+            const isValid = await bcrypt.compare(oldPassword, user.password);
+            if (!isValid) {
+                return new Response(JSON.stringify({ success: false, message: "current password incorrect" }), { status: 400 });
+            }
+
+            // 密码强度基本验证 (例如不少于 6 位)
+            if (newPassword.length < 6) {
+                return new Response(JSON.stringify({ success: false, message: "new password must be at least 6 characters" }), { status: 400 });
+            }
+
+            // 哈希新密码
+            const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+            
+            // 更新数据库
+            await env.DB.prepare("UPDATE users SET password = ? WHERE uid = ?").bind(hashedNewPassword, payload.uid).run();
+
+            return new Response(JSON.stringify({ success: true, message: "password updated successfully" }), {
+                headers: { "Content-Type": "application/json" }
+            });
+
+        } catch (e) {
+            return new Response(JSON.stringify({ success: false, message: "session invalid or expired" }), { status: 401 });
+        }
+    }
+
+    // ==================================================
+    // 0.2 API: 绑定邮箱 (POST /api/user/bind-email)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/user/bind-email") {
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+
+        try {
+            const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+            const formData = await request.formData();
+            const email = formData.get("email");
+
+            if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                 return new Response(JSON.stringify({ success: false, message: "invalid email format" }), { status: 400 });
+            }
+
+            // 检查邮箱是否已被使用 (全局)
+            const existing = await env.DB.prepare("SELECT uid FROM users WHERE email = ? AND email_verified = 1").bind(email).first();
+            if (existing) {
+                return new Response(JSON.stringify({ success: false, message: "email already in use" }), { status: 400 });
+            }
+            
+            // 检查当前用户是否已有邮箱（如果有，则为 Change Email 操作，需验证密码）
+            const currentUser = await env.DB.prepare("SELECT email, password, email_verified FROM users WHERE uid = ?").bind(payload.uid).first();
+            if (currentUser && currentUser.email && currentUser.email_verified) {
+                // 需要验证密码
+                const password = formData.get("password");
+                if (!password) {
+                     return new Response(JSON.stringify({ success: false, message: "password required to change email" }), { status: 400 });
+                }
+                const isValid = await bcrypt.compare(password, currentUser.password);
+                if (!isValid) {
+                    return new Response(JSON.stringify({ success: false, message: "incorrect password" }), { status: 400 });
+                }
+            }
+
+            const token = crypto.randomUUID();
+            const now = Date.now();
+            const expiresAt = now + 24 * 60 * 60 * 1000; // 24小时有效
+
+            // 存入临时表
+            await env.DB.prepare("INSERT OR REPLACE INTO email_verifications (token, uid, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
+                .bind(token, payload.uid, email, now, expiresAt)
+                .run();
+
+            // 发送邮件
+            const verifyLink = `${url.origin}/auth/verify-email?token=${token}`;
+            const htmlContent = `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2>Verify your email</h2>
+                    <p>Hi ${payload.username},</p>
+                    <p>Please click the link below to verify your email address for your coffeeroom account.</p>
+                    <p><a href="${verifyLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+                    <p>Or copy this link: ${verifyLink}</p>
+                    <p>This link will expire in 24 hours.</p>
+                </div>
+            `;
+
+            const sent = await sendEmail(env, email, "Verify your email - coffeeroom", htmlContent);
+            
+            if (sent) {
+                return new Response(JSON.stringify({ success: true, message: "verification email sent" }), {
+                    headers: { "Content-Type": "application/json" }
+                });
+            } else {
+                 return new Response(JSON.stringify({ success: false, message: "failed to send email" }), { status: 500 });
+            }
+
+        } catch (e) {
+            console.error(e);
+            return new Response(JSON.stringify({ success: false, message: "session invalid or server error" }), { status: 401 });
+        }
+    }
+
+    // ==================================================
+    // 0.3 API: 验证邮箱 (GET /auth/verify-email)
+    // ==================================================
+    if (request.method === "GET" && url.pathname === "/auth/verify-email") {
+        const token = url.searchParams.get("token");
+        if (!token) return new Response("Missing token", { status: 400 });
+
+        const record = await env.DB.prepare("SELECT * FROM email_verifications WHERE token = ?").bind(token).first();
+
+        if (!record) {
+             return new Response("Invalid or expired verification link.", { status: 400 });
+        }
+
+        if (record.expires_at < Date.now()) {
+            await env.DB.prepare("DELETE FROM email_verifications WHERE token = ?").bind(token).run();
+            return new Response("Verification link expired.", { status: 400 });
+        }
+
+        // 验证通过，更新用户表
+        await env.DB.batch([
+            env.DB.prepare("UPDATE users SET email = ?, email_verified = 1 WHERE uid = ?").bind(record.email, record.uid),
+            env.DB.prepare("DELETE FROM email_verifications WHERE token = ?").bind(token)
+        ]);
+
+        return new Response(`
+            <!DOCTYPE html>
+            <html>
+                <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <meta http-equiv="refresh" content="5;url=/user/settings.html" />
+                <title>email verified - coffeeroom</title>
+                <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
+                <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
+                <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+                <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+                <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+                <link rel="manifest" href="/site.webmanifest">
+                <style>
+                    @font-face {
+                        font-family: unifont;
+                        src: url(../fonts/unifont.otf);
+                    }
+                    @font-face {
+                        font-family: sentient;
+                        font-weight: bold;
+                        src: url(../fonts/Sentient-Bold.otf);
+                    }
+
+                    :root {
+                        --bg-color: #d8e3ed;
+                        --chat-bg-color: #eff3f7;
+                        --popup-bg-color: rgba(255, 255, 255, 0.5);
+                        --border-color: #808ea1;
+                        --note-color: #69727d;
+                        --text-color: #444f5d;
+                        --highlight-color: #b7c2d0;
+                        --pre-code-color: #ced9e3;
+                        --button-color: #f4f7f9;
+                        --button-hover-color: #ecf1f4;
+                        --button-active-color: #dee4e8;
+                        --msg-bg-color: #e1eaf1;
+                        --connection-green: #347b68;
+                        --connection-red: #c05858;
+                        --success-color: #347b68;
+                        --error-color: #c05858;
+                        --my-nom-color: #5d8dc7;
+                        --admin-nom-color: #d79a40;
+                        --nom-color: #d868a3;
+                    }
+                    [data-theme="dark"] {
+                        --bg-color: #242931;
+                        --chat-bg-color: #2e3640;
+                        --popup-bg-color: rgba(46, 54, 64, 0.5);
+                        --border-color: #555c68;
+                        --note-color: #888e9d;
+                        --text-color: #e9f0f5;
+                        --highlight-color: #444f5d;
+                        --pre-code-color: #2e3640;
+                        --button-color: #2e3640;
+                        --button-hover-color: #444f5d;
+                        --button-active-color: #39424e;
+                        --msg-bg-color: #444f5d;
+                        --connection-green: #A7D3A6;
+                        --connection-red: #D67A85;
+                        --success-color: #A7D3A6;
+                        --error-color: #D67A85;
+                        --my-nom-color: #A7C6EC;
+                        --admin-nom-color: #F9E1BD; /* #C5E4C0 */
+                        --nom-color: #E8A5C8;
+                    }
+                    [data-theme="mono"] {
+                        --bg-color: #ffffff;
+                        --chat-bg-color: #ffffff;
+                        --popup-bg-color: #ffffff;
+                        --border-color: #777777;
+                        --note-color: #777777;
+                        --text-color: #000000;
+                        --highlight-color: #cccccc;
+                        --pre-code-color: #dddddd;
+                        --button-color: #ffffff;
+                        --button-hover-color: #ffffff;
+                        --button-active-color: #eeeeee;
+                        --msg-bg-color: #ffffff;
+                        --connection-green: #000000;
+                        --connection-red: #000000;
+                        --success-color: #000000;
+                        --error-color: #000000;
+                        --my-nom-color: #000000;
+                        --admin-nom-color: #000000;
+                        --nom-color: #000000;
+                    }
+
+                    body {
+                        background-color: var(--bg-color);
+                        color: var(--text-color);
+                        max-width: 800px;
+                        margin: 0 auto;
+                        display: flex;
+                        flex-direction: column;
+                        min-height: 100vh;
+                        box-sizing: border-box;
+                    }
+
+                    html {
+                        background-color: var(--bg-color);
+                    }
+
+                    @media (max-width: 800px) {
+                        body {
+                            padding: 30px 15px 60px 15px;
+                            margin: 0;
+                        }
+                    }
+
+                    a {
+                        color: var(--text-color);
+                        cursor: pointer;
+                        font-family: 'unifont', sans-serif;
+                    }
+
+                    a:hover {
+                        background-color: var(--text-color);
+                        color: var(--bg-color);
+                    }
+
+                    ::selection {
+                        background-color: var(--text-color);
+                        color: var(--bg-color);
+                    }
+                </style>
+                <script>
+                    (function() {
+                        const savedMode = localStorage.getItem('theme-mode') || 'auto';
+                        let isDark = false;
+                        let isMono = false;
+                        if (savedMode === 'auto') {
+                            isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        } else if (savedMode === 'mono') {
+                            isMono = true;
+                        } else {
+                            isDark = (savedMode === 'dark');
+                        }
+                        if (isDark) {
+                            document.documentElement.setAttribute('data-theme', 'dark');
+                        } else if (isMono) {
+                            document.documentElement.setAttribute('data-theme', 'mono');
+                        }
+                    })();
+                </script>
+                </head>
+                <body>
+                    <div style="height: 100vh; width: 100%; max-width: 500px; margin: 0 auto; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                        <div style="border: 1px solid var(--border-color); background-color: var(--chat-bg-color); border-radius: 5px; padding: 20px; width: 100%; box-sizing: border-box; text-align: center;">
+                            <div style="color: var(--success-color); font-size: 16px; margin-bottom: 10px; font-family: 'unifont', sans-serif;">Email Verified</div>
+                            <div style="font-size: 14px; margin-bottom: 20px; font-family: 'unifont', sans-serif;">Your email <strong>${record.email}</strong> has been bound to your account.</div>
+                            <div style="font-size: 12px; color: var(--note-color); font-family: 'unifont', sans-serif;">Redirecting to settings in 5 seconds...</div>
+                            <br>
+                            <div style="font-size: 14px;"><a href="/user/settings.html">Click here if not redirected</a></div>
+                        </div>
+                    </div>
+                <script src="/scripts/theme.js"></script>
+                </body>
+            </html>
+        `, {
+            headers: { "Content-Type": "text/html" }
+        });
+    }
+
+    // ==================================================
+    // 0.4 API: 解绑邮箱 (POST /api/user/unbind-email)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/user/unbind-email") {
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+
+        try {
+            const { payload } = await jwtVerify(cookies.session, JWT_SECRET);
+            const formData = await request.formData();
+            const password = formData.get("password");
+
+            if (!password) return new Response(JSON.stringify({ success: false, message: "password required" }), { status: 400 });
+
+            // 验证密码
+            const user = await env.DB.prepare("SELECT password FROM users WHERE uid = ?").bind(payload.uid).first();
+            if (!user) return new Response(null, { status: 404 });
+
+            const isValid = await bcrypt.compare(password, user.password);
+            if (!isValid) {
+                return new Response(JSON.stringify({ success: false, message: "incorrect password" }), { status: 400 });
+            }
+
+            // 更新数据库: 清空邮箱
+            await env.DB.prepare("UPDATE users SET email = NULL, email_verified = 0 WHERE uid = ?").bind(payload.uid).run();
+
+            return new Response(JSON.stringify({ success: true, message: "email removed" }), {
+                headers: { "Content-Type": "application/json" }
+            });
+
+        } catch (e) {
+            return new Response(JSON.stringify({ success: false, message: "session invalid or server error" }), { status: 401 });
         }
     }
 
@@ -197,6 +548,212 @@ export default {
                 status: 500,
                 headers: { "Content-Type": "application/json" }
             });
+        }
+    }
+
+    // ==================================================
+    // 1.1 API: 忘记密码 (POST /api/auth/forgot-password)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/auth/forgot-password") {
+        try {
+            const formData = await request.formData();
+            const email = formData.get("email");
+
+            if (!email) {
+                return new Response(JSON.stringify({ success: false, message: "email required" }), { status: 400 });
+            }
+
+            // 查找用户 (必须是已验证邮箱)
+            const user = await env.DB.prepare("SELECT uid, username FROM users WHERE email = ? AND email_verified = 1").bind(email).first();
+
+            if (user) {
+                // 生成 Token
+                const token = crypto.randomUUID();
+                const now = Date.now();
+                const expiresAt = now + 15 * 60 * 1000; // 15分钟有效
+
+                // 存入 password_resets
+                await env.DB.prepare("INSERT OR REPLACE INTO password_resets (token, uid, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
+                    .bind(token, user.uid, email, now, expiresAt)
+                    .run();
+
+                // 发送邮件
+                const resetLink = `${url.origin}/auth/reset-password.html?token=${token}`;
+                const htmlContent = `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2>Reset your password</h2>
+                        <p>Hi ${user.username},</p>
+                        <p>We received a request to reset your password. If you didn't make this request, just ignore this email.</p>
+                        <p><a href="${resetLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
+                        <p>Or copy this link: ${resetLink}</p>
+                        <p>This link will expire in 15 minutes.</p>
+                    </div>
+                `;
+
+                // 不等待邮件发送结果，直接返回成功，避免泄露信息或超时
+                ctx.waitUntil(sendEmail(env, email, "Reset your password - coffeeroom", htmlContent));
+            }
+
+            // 无论是否存在，都返回通用消息
+            return new Response(JSON.stringify({ success: true, message: "if that email exists, we've sent a reset link." }), {
+                headers: { "Content-Type": "application/json" }
+            });
+
+        } catch (e) {
+            console.error(e);
+            return new Response(JSON.stringify({ success: false, message: "server error" }), { status: 500 });
+        }
+    }
+
+    // ==================================================
+    // 1.2 页面: 重置密码页面 (GET /auth/reset-password.html)
+    // ==================================================
+    if (request.method === "GET" && url.pathname === "/auth/reset-password.html") {
+        const token = url.searchParams.get("token");
+        if (!token) return new Response("Missing token", { status: 400 });
+
+        // 验证 Token
+        const record = await env.DB.prepare("SELECT * FROM password_resets WHERE token = ?").bind(token).first();
+        if (!record || record.expires_at < Date.now()) {
+             return new Response(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <title>error - coffeeroom</title>
+                        <link rel="stylesheet" href="/css/auth.css">
+                    </head>
+                    <body>
+                        <div class="box">
+                            <div class="content">
+                                <div class="title-auth">Link Expired</div>
+                                <div class="container">
+                                    <div class="authbox">
+                                        <span class="text">This reset link is invalid or has expired.</span><br>
+                                        <span class="text"><a href="/auth/forgot.html">Request a new one</a>.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+             `, { headers: { "Content-Type": "text/html" } });
+        }
+
+        // 返回重置表单
+        return new Response(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>reset password - coffeeroom</title>
+                <link rel="stylesheet" href="/css/auth.css">
+                <script src="/scripts/theme.js"></script>
+            </head>
+            <body>
+                <div class="box">
+                    <div class="content">
+                    <div class="header"><span class="title">caffeineId</span></div>
+                    <br>
+                    <div class="title-auth">Reset Password</div>
+                    <div class="container">
+                        <div class="authbox">
+                            <span class="text">Enter your new password below.</span>
+                        </div>
+                        <div class="authbox">
+                            <br>
+                            <form id="reset-password-form" method="POST" action="/api/auth/reset-password">
+                                <input type="hidden" name="token" value="${token}">
+                                <div class="input-group"><input type="password" name="password" placeholder="new password" required /></div>
+                                <div class="input-group"><input type="password" name="confirm-password" placeholder="confirm new password" required /></div>
+                                <button type="submit">reset password</button>
+                            </form>
+                            <br>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <script>
+                    const form = document.getElementById('reset-password-form');
+                    form.querySelectorAll('input').forEach(input => {
+                        input.addEventListener('invalid', function(e) {
+                            e.preventDefault();
+                            const oldTip = this.parentNode.querySelector('.error-tip');
+                            if (oldTip) oldTip.remove();
+
+                            const tip = document.createElement('div');
+                            tip.className = 'error-tip';
+                            tip.innerText = this.validationMessage;
+                            this.parentNode.appendChild(tip);
+                            setTimeout(() => { tip.remove(); }, 2000);
+                        });
+                    });
+                </script>
+            </body>
+            </html>
+        `, { headers: { "Content-Type": "text/html" } });
+    }
+
+    // ==================================================
+    // 1.3 API: 执行重置密码 (POST /api/auth/reset-password)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/auth/reset-password") {
+        try {
+            const formData = await request.formData();
+            const token = formData.get("token");
+            const password = formData.get("password");
+            const confirmPassword = formData.get("confirm-password");
+
+            if (password !== confirmPassword) {
+                return new Response("Passwords do not match", { status: 400 });
+            }
+
+            const record = await env.DB.prepare("SELECT * FROM password_resets WHERE token = ?").bind(token).first();
+            if (!record || record.expires_at < Date.now()) {
+                return new Response("Invalid or expired token", { status: 400 });
+            }
+
+            // 更新密码
+            const hashedPassword = await bcrypt.hash(password, 10);
+            await env.DB.prepare("UPDATE users SET password = ? WHERE uid = ?").bind(hashedPassword, record.uid).run();
+            
+            // 删除 Token
+            await env.DB.prepare("DELETE FROM password_resets WHERE token = ?").bind(token).run();
+
+            // 删除所有 Session (强制下线)
+            await env.DB.prepare("DELETE FROM sessions WHERE uid = ?").bind(record.uid).run();
+
+            return new Response(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                        <meta charset="UTF-8">
+                        <meta http-equiv="refresh" content="5;url=/auth/login.html" />
+                        <title>success</title>
+                        <link rel="stylesheet" href="/css/auth.css">
+                        <script src="/scripts/theme.js"></script>
+                    </head>
+                    <body>
+                        <div class="box">
+                            <div class="content">
+                                <div class="title-auth">Success</div>
+                                <div class="container">
+                                    <div class="authbox">
+                                        <span class="text">Password reset successfully! Redirecting to login...</span><br>
+                                        <span class="text">If you are not redirected, please click <a href="/auth/login.html">here</a>.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </body>
+                </html>
+            `, { headers: { "Content-Type": "text/html" } });
+
+        } catch (e) {
+            console.error(e);
+            return new Response("Server Error", { status: 500 });
         }
     }
 
@@ -602,6 +1159,11 @@ export default {
         return stub.fetch(request);
     }
 
+    // 未处理的请求交给 Pages 静态资源自动处理 404.html
+    if (env.ASSETS) {
+        return env.ASSETS.fetch(request);
+    }
+    
     return new Response("Not found", { status: 404 });
   }
 };
@@ -623,6 +1185,44 @@ async function verifyTurnstile(token, secretKey, ip) {
     });
 
     return await result.json();
+}
+
+// 邮件发送 helper
+async function sendEmail(env, to, subject, htmlContent) {
+    if (!env.RESEND_API_KEY) {
+        console.error('Missing RESEND_API_KEY');
+        return false;
+    }
+    
+    try {
+        const res = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.RESEND_API_KEY}`
+            },
+            body: JSON.stringify({
+                from: 'coffeeroom <noreply@caffeine.ink>',
+                to: [to],
+                subject: subject,
+                html: htmlContent
+            })
+        });
+
+        if (res.ok) {
+            return true;
+        } else {
+            // 如果能获取错误详情最好打印一下，方便调试
+            try {
+                const data = await res.json();
+                console.error('Resend API Error:', data);
+            } catch(e) {}
+            return false;
+        }
+    } catch (e) {
+        console.error('Send Email Exception:', e);
+        return false;
+    }
 }
 
 

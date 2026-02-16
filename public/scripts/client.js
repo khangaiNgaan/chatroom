@@ -432,7 +432,8 @@ async function handleSaveCommand(text) {
         });
 
         // 生成文件名: chatroom_datetime(count).txt
-        const nowStr = formatLocalISOString(new Date());
+        const rawNowStr = formatLocalISOString(new Date());
+        const nowStr = rawNowStr.replace(/:/g, '');
         const filename = `${currentRoom}_${nowStr}(${messagesToSave.length}).txt`;
 
         // 创建 Blob 并触发下载

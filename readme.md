@@ -12,4 +12,4 @@ Licensed under [**GNU AGPL v3.0**](LICENSE.txt).
 
 Built on the Cloudflare Global Network. Thank you, Cloudflare!
 
-Additionally, I owe a lot of thanks to gemini-cli. I love you, gemini <3.
+Additionally, I owe a lot of thanks to Gemini CLI. I love you, Gemini <3.

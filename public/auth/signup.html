@@ -65,9 +65,7 @@
                     <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
                     <div class="input-group"><input type="password" id="password" name="password" placeholder="password" required /></div>
                     <div class="input-group"><input type="password" id="confirm-password" name="confirm-password" placeholder="confirm password" required /></div>
-                    <div class="input-group"><input type="text" id="invite-code" name="invite-code" placeholder="invite code" required /></div>
-                    <div class="input-group"><div class="cf-turnstile" data-sitekey="0x4AAAAAACJid3sBnLLYO4zB"></div></div>
-                    <button type="submit">sign up</button>
+                    <button type="submit">continue</button>
                 </form>
                 <br>
             </div>
@@ -98,16 +96,36 @@
           });
       });
 
-      // 接管表单提交
+      // 第一步：验证并跳转
       form.addEventListener('submit', async function(e) {
           e.preventDefault();
           msgBox.style.display = 'none';
           msgBox.className = 'auth-message';
 
           const formData = new FormData(form);
+          const password = formData.get('password');
+          const confirmPassword = formData.get('confirm-password');
+
+          if (password.length < 6) {
+              msgBox.innerText = "password must be at least 6 characters";
+              msgBox.style.display = 'block';
+              msgBox.classList.add('error');
+              return;
+          }
+
+          if (password !== confirmPassword) {
+              msgBox.innerText = "passwords do not match";
+              msgBox.style.display = 'block';
+              msgBox.classList.add('error');
+              return;
+          }
+
+          // 这里可以加简单的前端格式校验，但最终以第二步后端校验为准
+          // 为了不暴露 API，我们直接存入 session 并跳转
+          // 或者先发个请求验证用户名是否可用？ (建议)
 
           try {
-              const res = await fetch('/api/signup', {
+              const res = await fetch('/api/signup/check-username', {
                   method: 'POST',
                   body: formData
               });
@@ -115,18 +133,15 @@
               const data = await res.json();
 
               if (data.success) {
-                  msgBox.innerText = data.message;
-                  msgBox.style.display = 'block';
-                  msgBox.classList.add('success');
-                  // 成功后延迟跳转登录页
-                  setTimeout(() => {
-                      window.location.href = '/auth/login.html';
-                  }, 2000);
+                  // 存储数据
+                  sessionStorage.setItem('signup_username', formData.get('username'));
+                  sessionStorage.setItem('signup_password', password);
+                  // 跳转第二步
+                  window.location.href = '/auth/signup_verify.html';
               } else {
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';
                   msgBox.classList.add('error');
-                  if (window.turnstile) window.turnstile.reset();
               }
           } catch (err) {
               msgBox.innerText = "network error";

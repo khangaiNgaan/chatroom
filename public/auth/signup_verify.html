@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sign up - coffeeroom</title>
+    <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <script defer src="/scripts/favicon.js"></script>
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="stylesheet" href="/css/auth.css">
+    <script>
+      (function() {
+          const savedMode = localStorage.getItem('theme-mode') || 'auto';
+          let isDark = false;
+          let isMono = false;
+          if (savedMode === 'auto') {
+              isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else if (savedMode === 'mono') {
+              isMono = true;
+          } else {
+              isDark = (savedMode === 'dark');
+          }
+          if (isDark) {
+              document.documentElement.setAttribute('data-theme', 'dark');
+          } else if (isMono) {
+              document.documentElement.setAttribute('data-theme', 'mono');
+          }
+      })();
+    </script>
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="cf3f6b51-a212-4d89-bad2-8d83e259075d"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  </head>
+  <body>
+    <div class="box">
+        <div class="content">
+          <div class="header">  
+          <span class="title">caffeineId</span>
+          <span class="themebtn">theme: <a href="#" id="darkModeButton">auto</a></span>
+          </div>
+          <br>
+          <div class="title-auth">Verification</div>
+          <div class="container">
+            <div class="authbox">
+                <span class="text">Verify via invite code or email.</span>
+            </div>
+            <div class="authbox">
+                <div id="auth-message" class="auth-message"></div>
+                <br>
+                <form id="signup-method-form">
+                    <div class="input-group"><input type="email" id="email" name="email" placeholder="email address" /></div>
+                    <div class="input-group"><input type="text" id="invite-code" name="invite-code" placeholder="invite code" /></div>
+                    
+                    <div class="input-group"><div class="cf-turnstile" data-sitekey="0x4AAAAAACJid3sBnLLYO4zB"></div></div>
+                    <button type="submit">complete signup</button>
+                </form>
+                <br>
+            </div>
+            <div class="authbox">
+                <span class="text"><a href="/auth/signup.html">&lt; return</a></span>
+            </div>
+          </div>
+          <br>
+        </div>
+        <br>
+        <footer>
+          <span class="copyright">Copyright (c) 2025-2026 caffeine-Ink. Licensed under AGPLv3. <span class="app-ver"></span></span>
+        </footer>
+    </div>
+    <script src="/scripts/theme.js"></script>
+    <script src="/scripts/signup_verify.js"></script>
+    <script src="/scripts/version.js"></script>
+  </body>
+</html>

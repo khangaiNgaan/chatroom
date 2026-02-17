@@ -373,6 +373,203 @@ export default {
     }
 
     // ==================================================
+    // 0.3b API: 验证注册 (GET /auth/verify-registration)
+    // ==================================================
+    if (request.method === "GET" && url.pathname === "/auth/verify-registration") {
+        const token = url.searchParams.get("token");
+        if (!token) return new Response("Missing token", { status: 400 });
+
+        const record = await env.DB.prepare("SELECT * FROM pending_registrations WHERE token = ?").bind(token).first();
+
+        if (!record) {
+             return new Response("Invalid or expired registration link.", { status: 400 });
+        }
+
+        if (record.expires_at < Date.now()) {
+            await env.DB.prepare("DELETE FROM pending_registrations WHERE token = ?").bind(token).run();
+            return new Response("Registration link expired. Please sign up again.", { status: 400 });
+        }
+
+        try {
+            // 创建用户
+            const newUid = await generateNextUid(env);
+            
+            await env.DB.batch([
+                env.DB.prepare("INSERT INTO users (uid, username, password, email, email_verified, signup_date, original_email) VALUES (?, ?, ?, ?, 1, ?, ?)")
+                    .bind(newUid, record.username, record.password_hash, record.email, Date.now(), record.email),
+                env.DB.prepare("DELETE FROM pending_registrations WHERE token = ?").bind(token)
+            ]);
+
+            return new Response(`
+                <!DOCTYPE html>
+                <html>
+                    <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                    <meta http-equiv="refresh" content="5;url=/auth/login.html" />
+                    <title>email verified - coffeeroom</title>
+                    <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
+                    <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
+                    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+                    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+                    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+                    <link rel="manifest" href="/site.webmanifest">
+                    <style>
+                        @font-face {
+                            font-family: unifont;
+                            src: url(../fonts/unifont.otf);
+                        }
+                        @font-face {
+                            font-family: sentient;
+                            font-weight: bold;
+                            src: url(../fonts/Sentient-Bold.otf);
+                        }
+
+                        :root {
+                            --bg-color: #d8e3ed;
+                            --chat-bg-color: #eff3f7;
+                            --popup-bg-color: rgba(255, 255, 255, 0.5);
+                            --border-color: #808ea1;
+                            --note-color: #69727d;
+                            --text-color: #444f5d;
+                            --highlight-color: #b7c2d0;
+                            --pre-code-color: #ced9e3;
+                            --button-color: #f4f7f9;
+                            --button-hover-color: #ecf1f4;
+                            --button-active-color: #dee4e8;
+                            --msg-bg-color: #e1eaf1;
+                            --connection-green: #347b68;
+                            --connection-red: #c05858;
+                            --success-color: #347b68;
+                            --error-color: #c05858;
+                            --my-nom-color: #5d8dc7;
+                            --admin-nom-color: #d79a40;
+                            --nom-color: #d868a3;
+                        }
+                        [data-theme="dark"] {
+                            --bg-color: #242931;
+                            --chat-bg-color: #2e3640;
+                            --popup-bg-color: rgba(46, 54, 64, 0.5);
+                            --border-color: #555c68;
+                            --note-color: #888e9d;
+                            --text-color: #e9f0f5;
+                            --highlight-color: #444f5d;
+                            --pre-code-color: #2e3640;
+                            --button-color: #2e3640;
+                            --button-hover-color: #444f5d;
+                            --button-active-color: #39424e;
+                            --msg-bg-color: #444f5d;
+                            --connection-green: #A7D3A6;
+                            --connection-red: #D67A85;
+                            --success-color: #A7D3A6;
+                            --error-color: #D67A85;
+                            --my-nom-color: #A7C6EC;
+                            --admin-nom-color: #F9E1BD; /* #C5E4C0 */
+                            --nom-color: #E8A5C8;
+                        }
+                        [data-theme="mono"] {
+                            --bg-color: #ffffff;
+                            --chat-bg-color: #ffffff;
+                            --popup-bg-color: #ffffff;
+                            --border-color: #777777;
+                            --note-color: #777777;
+                            --text-color: #000000;
+                            --highlight-color: #cccccc;
+                            --pre-code-color: #dddddd;
+                            --button-color: #ffffff;
+                            --button-hover-color: #ffffff;
+                            --button-active-color: #eeeeee;
+                            --msg-bg-color: #ffffff;
+                            --connection-green: #000000;
+                            --connection-red: #000000;
+                            --success-color: #000000;
+                            --error-color: #000000;
+                            --my-nom-color: #000000;
+                            --admin-nom-color: #000000;
+                            --nom-color: #000000;
+                        }
+
+                        body {
+                            background-color: var(--bg-color);
+                            color: var(--text-color);
+                            max-width: 800px;
+                            margin: 0 auto;
+                            display: flex;
+                            flex-direction: column;
+                            min-height: 100vh;
+                            box-sizing: border-box;
+                        }
+
+                        html {
+                            background-color: var(--bg-color);
+                        }
+
+                        @media (max-width: 800px) {
+                            body {
+                                padding: 30px 15px 60px 15px;
+                                margin: 0;
+                            }
+                        }
+
+                        a {
+                            color: var(--text-color);
+                            cursor: pointer;
+                            font-family: 'unifont', sans-serif;
+                        }
+
+                        a:hover {
+                            background-color: var(--text-color);
+                            color: var(--bg-color);
+                        }
+
+                        ::selection {
+                            background-color: var(--text-color);
+                            color: var(--bg-color);
+                        }
+                    </style>
+                    <script>
+                        (function() {
+                            const savedMode = localStorage.getItem('theme-mode') || 'auto';
+                            let isDark = false;
+                            let isMono = false;
+                            if (savedMode === 'auto') {
+                                isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                            } else if (savedMode === 'mono') {
+                                isMono = true;
+                            } else {
+                                isDark = (savedMode === 'dark');
+                            }
+                            if (isDark) {
+                                document.documentElement.setAttribute('data-theme', 'dark');
+                            } else if (isMono) {
+                                document.documentElement.setAttribute('data-theme', 'mono');
+                            }
+                        })();
+                    </script>
+                    </head>
+                    <body>
+                        <div style="height: 100vh; width: 100%; max-width: 500px; margin: 0 auto; display: flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                            <div style="border: 1px solid var(--border-color); background-color: var(--chat-bg-color); border-radius: 5px; padding: 20px; width: 100%; box-sizing: border-box; text-align: center;">
+                                <div style="color: var(--success-color); font-size: 16px; margin-bottom: 10px; font-family: 'unifont', sans-serif;">Registration Successful</div>
+                                <div style="font-size: 14px; margin-bottom: 20px; font-family: 'unifont', sans-serif;">Your account <strong>${record.username}</strong> has been created.</div>
+                                <div style="font-size: 12px; color: var(--note-color); font-family: 'unifont', sans-serif;">Redirecting to login in 5 seconds...</div>
+                                <br>
+                                <div style="font-size: 14px;"><a href="/auth/login.html">Click here if not redirected</a></div>
+                            </div>
+                        </div>
+                    <script src="/scripts/theme.js"></script>
+                    </body>
+                </html>
+            `, {
+                headers: { "Content-Type": "text/html" }
+            });
+        } catch(e) {
+            console.error(e);
+            return new Response("Error creating account", { status: 500 });
+        }
+    }
+
+    // ==================================================
     // 0.4 API: 解绑邮箱 (POST /api/user/unbind-email)
     // ==================================================
     if (request.method === "POST" && url.pathname === "/api/user/unbind-email") {
@@ -456,6 +653,36 @@ export default {
     }
 
     // ==================================================
+    // 1.1a API: 注册预检查 (POST /api/signup/check-username)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/signup/check-username") {
+                    try {
+                    const formData = await request.formData();
+                    const username = formData.get("username");
+                    const password = formData.get("password"); // 新增：获取密码进行验证
+        
+                    // 基础格式验证
+                    if (!/^\w{4,16}$/.test(username)) {
+                        return new Response(JSON.stringify({ success: false, message: "username must be 4-16 valid chars" }), { status: 400 });
+                    }
+        
+                    if (!password || password.length < 6) {
+                        return new Response(JSON.stringify({ success: false, message: "password must be at least 6 chars" }), { status: 400 });
+                    }
+        
+                    // 检查用户名是否存在            
+                    const existing = await env.DB.prepare("SELECT uid FROM users WHERE username = ?").bind(username).first();
+            if (existing) {
+                return new Response(JSON.stringify({ success: false, message: "username already taken" }), { status: 400 });
+            }
+
+            return new Response(JSON.stringify({ success: true, message: "valid" }), { headers: { "Content-Type": "application/json" } });
+        } catch(e) {
+            return new Response("Error", { status: 500 });
+        }
+    }
+
+    // ==================================================
     // 1. 注册逻辑 (POST /api/signup)
     // ==================================================
     if (request.method === "POST" && url.pathname === "/api/signup") {
@@ -463,8 +690,6 @@ export default {
             const formData = await request.formData();
             const username = formData.get("username");
             const password = formData.get("password");
-            const confirmPassword = formData.get("confirm-password");
-            const inviteCode = formData.get("invite-code");
             const turnstileToken = formData.get("cf-turnstile-response");
             const ip = request.headers.get("CF-Connecting-IP");
 
@@ -485,14 +710,13 @@ export default {
             }
 
             // 1.2 基础验证
-            if (password !== confirmPassword) {
-                return new Response(JSON.stringify({ success: false, message: "passwords do not match" }), { 
+            if (!password || password.length < 6) {
+                return new Response(JSON.stringify({ success: false, message: "password must be at least 6 characters" }), { 
                     status: 400,
                     headers: { "Content-Type": "application/json" }
                 });
             }
 
-            // 验证用户名格式 (仅允许字母、数字、下划线) 4-16字符
             if (!/^\w{4,16}$/.test(username)) {
                 return new Response(JSON.stringify({ success: false, message: "username contains invalid characters" }), { 
                     status: 400,
@@ -500,48 +724,119 @@ export default {
                 });
             }
 
-            // 1.3 验证邀请码
-            const invite = await env.DB.prepare("SELECT * FROM invites WHERE code = ?").bind(inviteCode).first();
-            if (!invite) {
-                return new Response(JSON.stringify({ success: false, message: "invalid invite code" }), { 
-                    status: 400,
-                    headers: { "Content-Type": "application/json" }
-                });
-            }
-            if (invite.is_used === 1) {
-                return new Response(JSON.stringify({ success: false, message: "invite code already used" }), { 
-                    status: 400,
-                    headers: { "Content-Type": "application/json" }
-                });
-            }
-
-            // 1.4 检查用户名是否已存在
+            // 检查用户名是否已存在
             const existingUser = await env.DB.prepare("SELECT uid FROM users WHERE username = ?").bind(username).first();
             if (existingUser) {
-                return new Response(JSON.stringify({ success: false, message: "username already taken" }), { 
+                 return new Response(JSON.stringify({ success: false, message: "username already taken" }), { 
                     status: 400,
                     headers: { "Content-Type": "application/json" }
                 });
             }
 
-            // 1.5 生成 UID
-            const newUid = await generateNextUid(env);
+            // 1.3 混合验证逻辑
+            const inviteCode = formData.get("invite-code");
+            const email = formData.get("email");
 
-            // 1.6 密码加密
-            const hashedPassword = await bcrypt.hash(password, 10);
+            if (!inviteCode && !email) {
+                return new Response(JSON.stringify({ success: false, message: "verification method required" }), { status: 400 });
+            }
 
-            // 1.7 写入数据库 (事务: 创建用户 + 标记邀请码已用)
-            await env.DB.batch([
-                env.DB.prepare("INSERT INTO users (uid, username, password, email, signup_date) VALUES (?, ?, ?, ?, ?)")
-                    .bind(newUid, username, hashedPassword, null, Date.now()),
-                env.DB.prepare("UPDATE invites SET is_used = 1, used_by_uid = ? WHERE code = ?")
-                    .bind(newUid, inviteCode)
-            ]);
+            // 优先处理邀请码 (直接注册)
+            if (inviteCode && inviteCode.trim() !== "") {
+                const invite = await env.DB.prepare("SELECT * FROM invites WHERE code = ?").bind(inviteCode).first();
+                if (!invite) {
+                    return new Response(JSON.stringify({ success: false, message: "invalid invite code" }), { status: 400 });
+                }
+                if (invite.is_used === 1) {
+                    return new Response(JSON.stringify({ success: false, message: "invite code already used" }), { status: 400 });
+                }
 
-            return new Response(JSON.stringify({ success: true, message: "sign up successful! please login." }), { 
-                status: 200,
-                headers: { "Content-Type": "application/json" }
-            });
+                // 如果同时填了邮箱，检查邮箱占用情况
+                if (email && email.trim() !== "") {
+                    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        return new Response(JSON.stringify({ success: false, message: "invalid email format" }), { status: 400 });
+                    }
+                    const existingEmail = await env.DB.prepare("SELECT uid FROM users WHERE email = ? AND email_verified = 1").bind(email).first();
+                    if (existingEmail) {
+                        return new Response(JSON.stringify({ success: false, message: "email already registered" }), { status: 400 });
+                    }
+                }
+
+                // 创建用户
+                const newUid = await generateNextUid(env);
+                const hashedPassword = await bcrypt.hash(password, 10);
+                const userEmail = (email && email.trim() !== "") ? email : null;
+                
+                await env.DB.batch([
+                    env.DB.prepare("INSERT INTO users (uid, username, password, email, email_verified, signup_date, original_email) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                        .bind(newUid, username, hashedPassword, userEmail, 0, Date.now(), userEmail), // email_verified=0
+                    env.DB.prepare("UPDATE invites SET is_used = 1, used_by_uid = ? WHERE code = ?").bind(newUid, inviteCode)
+                ]);
+
+                // 如果有邮箱，发送验证邮件 (异步)
+                if (userEmail) {
+                    const token = crypto.randomUUID();
+                    const now = Date.now();
+                    const expiresAt = now + 24 * 60 * 60 * 1000;
+                    
+                    // 存入 email_verifications (注意：不是 pending_registrations，因为用户已经存在了)
+                    await env.DB.prepare("INSERT OR REPLACE INTO email_verifications (token, uid, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
+                        .bind(token, newUid, userEmail, now, expiresAt)
+                        .run();
+
+                    const verifyLink = `${url.origin}/auth/verify-email?token=${token}`;
+                    const htmlContent = `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                            <h2>Welcome to coffeeroom!</h2>
+                            <p>Hi ${username},</p>
+                            <p>You have successfully registered using an invite code.</p>
+                            <p>Please verify your email address to secure your account.</p>
+                            <p><a href="${verifyLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+                        </div>
+                    `;
+                    ctx.waitUntil(sendEmail(env, userEmail, "Verify your email - coffeeroom", htmlContent));
+                }
+
+                return new Response(JSON.stringify({ success: true, message: "signup successful", redirect: "/auth/login.html" }), {
+                    status: 200,
+                    headers: { "Content-Type": "application/json" }
+                });
+
+            } else {
+                // 仅邮箱验证 (Pending 流程)
+                if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                    return new Response(JSON.stringify({ success: false, message: "invalid email format" }), { status: 400 });
+                }
+
+                const existingEmail = await env.DB.prepare("SELECT uid FROM users WHERE email = ? AND email_verified = 1").bind(email).first();
+                if (existingEmail) {
+                    return new Response(JSON.stringify({ success: false, message: "email already registered" }), { status: 400 });
+                }
+
+                const token = crypto.randomUUID();
+                const hashedPassword = await bcrypt.hash(password, 10);
+                const now = Date.now();
+                const expiresAt = now + 24 * 60 * 60 * 1000;
+
+                await env.DB.prepare("INSERT OR REPLACE INTO pending_registrations (token, username, password_hash, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)")
+                    .bind(token, username, hashedPassword, email, now, expiresAt)
+                    .run();
+
+                const verifyLink = `${url.origin}/auth/verify-registration?token=${token}`;
+                const htmlContent = `
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2>Welcome to coffeeroom!</h2>
+                        <p>Hi ${username},</p>
+                        <p>Please click the link below to verify your email and complete your registration.</p>
+                        <p><a href="${verifyLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify and Sign Up</a></p>
+                    </div>
+                `;
+
+                ctx.waitUntil(sendEmail(env, email, "Verify your registration - coffeeroom", htmlContent));
+                
+                return new Response(JSON.stringify({ success: true, message: "verification email sent. please check your inbox and spam folder." }), {
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
 
         } catch (err) {
             return new Response(JSON.stringify({ success: false, message: "sign up error: " + err.message }), { 
@@ -623,6 +918,25 @@ export default {
                         <meta name="viewport" content="width=device-width, initial-scale=1.0">
                         <title>error - coffeeroom</title>
                         <link rel="stylesheet" href="/css/auth.css">
+                        <script>
+                            (function() {
+                                const savedMode = localStorage.getItem('theme-mode') || 'auto';
+                                let isDark = false;
+                                let isMono = false;
+                                if (savedMode === 'auto') {
+                                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                } else if (savedMode === 'mono') {
+                                    isMono = true;
+                                } else {
+                                    isDark = (savedMode === 'dark');
+                                }
+                                if (isDark) {
+                                    document.documentElement.setAttribute('data-theme', 'dark');
+                                } else if (isMono) {
+                                    document.documentElement.setAttribute('data-theme', 'mono');
+                                }
+                            })();
+                        </script>
                     </head>
                     <body>
                         <div class="box">
@@ -733,6 +1047,25 @@ export default {
                         <meta http-equiv="refresh" content="5;url=/auth/login.html" />
                         <title>success</title>
                         <link rel="stylesheet" href="/css/auth.css">
+                        <script>
+                            (function() {
+                                const savedMode = localStorage.getItem('theme-mode') || 'auto';
+                                let isDark = false;
+                                let isMono = false;
+                                if (savedMode === 'auto') {
+                                    isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                                } else if (savedMode === 'mono') {
+                                    isMono = true;
+                                } else {
+                                    isDark = (savedMode === 'dark');
+                                }
+                                if (isDark) {
+                                    document.documentElement.setAttribute('data-theme', 'dark');
+                                } else if (isMono) {
+                                    document.documentElement.setAttribute('data-theme', 'mono');
+                                }
+                            })();
+                        </script>
                         <script src="/scripts/theme.js"></script>
                     </head>
                     <body>

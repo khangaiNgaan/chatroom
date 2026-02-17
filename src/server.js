@@ -1152,21 +1152,94 @@ export default {
     if (pathnameParts[0] === "websocket") {
         const roomName = pathnameParts[1] || "general";
         if (!ALLOWED_CHATROOMS.includes(roomName)) {
-            return new Response("Chatroom not found", { status: 404 });
+            return new Response("room not found", { status: 404 });
         }
         const id = env.CHAT_ROOM.idFromName(roomName);
         const stub = env.CHAT_ROOM.get(id);
         return stub.fetch(request);
     }
 
-    // 未处理的请求交给 Pages 静态资源自动处理 404.html
+    // 静态资源处理 (ASSETS)
     if (env.ASSETS) {
-        return env.ASSETS.fetch(request);
+        try {
+            const response = await env.ASSETS.fetch(request);
+            if (response.status === 404) {
+                 // not found -> 404 page
+                 return new Response(HTML_404, {
+                     status: 404,
+                     headers: { "Content-Type": "text/html; charset=utf-8" }
+                 });
+            }
+            return response;
+        } catch (e) {
+            // ignore ASSETS error
+        }
     }
-    
-    return new Response("Not found", { status: 404 });
+
+    // 404 page content
+    return new Response(HTML_404, {
+        status: 404,
+        headers: { "Content-Type": "text/html; charset=utf-8" }
+    });
   }
 };
+
+const HTML_404 = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - caffeine-Ink</title>
+    <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <script defer src="/scripts/favicon.js"></script>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <script>
+      (function() {
+          const savedMode = localStorage.getItem('theme-mode') || 'auto';
+          let isDark = false;
+          let isMono = false;
+          if (savedMode === 'auto') {
+              isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          } else if (savedMode === 'mono') {
+              isMono = true;
+          } else {
+              isDark = (savedMode === 'dark');
+          }
+          if (isDark) {
+              document.documentElement.setAttribute('data-theme', 'dark');
+          } else if (isMono) {
+              document.documentElement.setAttribute('data-theme', 'mono');
+          }
+      })();
+    </script>
+	<script defer src="https://cloud.umami.is/script.js" data-website-id="cf3f6b51-a212-4d89-bad2-8d83e259075d"></script>
+  </head>
+  <body>
+    <div class="box">
+        <div class="content">
+          <div class="header">  
+          <span class="title">caffeine-Ink</span>
+          <span class="date"></span>
+          </div>
+          <br>
+          <p>Error 404: Not Found</p>
+          <br>
+        </div>
+        <div class="back"><a href="/">&lt; back to home</a></div>
+        <footer>
+          <br>
+          <div class="copyright"></div>
+        </footer>
+    </div>
+    <script src="/scripts/theme.js"></script>
+  </body>
+</html>`;
 
 // ==================================================
 // 辅助函数

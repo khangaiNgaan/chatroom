@@ -147,7 +147,7 @@ export default {
 
             const token = crypto.randomUUID();
             const now = Date.now();
-            const expiresAt = now + 24 * 60 * 60 * 1000; // 24小时有效
+            const expiresAt = now + 24 * 60 * 60 * 1000; // 24 hrs
 
             // 存入临时表
             await env.DB.prepare("INSERT OR REPLACE INTO email_verifications (token, uid, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
@@ -164,6 +164,8 @@ export default {
                     <p><a href="${verifyLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
                     <p>Or copy this link: ${verifyLink}</p>
                     <p>This link will expire in 24 hours.</p>
+                    <p>If you didn't request this change, please ignore this email.</p>
+                    <p>Support: <a href="mailto:support@caffeine.ink">support@caffeine.ink</a></p>
                 </div>
             `;
 
@@ -777,9 +779,9 @@ export default {
                 if (userEmail) {
                     const token = crypto.randomUUID();
                     const now = Date.now();
-                    const expiresAt = now + 24 * 60 * 60 * 1000;
+                    const expiresAt = now + 24 * 60 * 60 * 1000; // 24 hrs
                     
-                    // 存入 email_verifications (注意：不是 pending_registrations，因为用户已经存在了)
+                    // 存入 email_verifications
                     await env.DB.prepare("INSERT OR REPLACE INTO email_verifications (token, uid, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?)")
                         .bind(token, newUid, userEmail, now, expiresAt)
                         .run();
@@ -791,6 +793,10 @@ export default {
                             <p>You have successfully registered using an invite code.</p>
                             <p>Please verify your email address to secure your account.</p>
                             <p><a href="${verifyLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+                            <p>Or copy this link: ${verifyLink}</p>
+                            <p>This link will expire in 24 hours.</p>
+                            <p>If you didn't sign up for coffeeroom, please ignore this email.</p>
+                            <p>Support: <a href="mailto:support@caffeine.ink">support@caffeine.ink</a></p>
                         </div>
                     `;
                     ctx.waitUntil(sendEmail(env, userEmail, "Verify your email - coffeeroom", htmlContent));
@@ -815,7 +821,7 @@ export default {
                 const token = crypto.randomUUID();
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const now = Date.now();
-                const expiresAt = now + 24 * 60 * 60 * 1000;
+                const expiresAt = now + 24 * 60 * 60 * 1000; // 24 hrs
 
                 await env.DB.prepare("INSERT OR REPLACE INTO pending_registrations (token, username, password_hash, email, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)")
                     .bind(token, username, hashedPassword, email, now, expiresAt)
@@ -828,6 +834,10 @@ export default {
                         <p>Hi ${username},</p>
                         <p>Please click the link below to verify your email and complete your registration.</p>
                         <p><a href="${verifyLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify and Sign Up</a></p>
+                        <p>Or copy this link: ${verifyLink}</p>
+                        <p>This link will expire in 24 hours.</p>
+                        <p>If you didn't sign up for coffeeroom, please ignore this email.</p>
+                        <p>Support: <a href="mailto:support@caffeine.ink">support@caffeine.ink</a></p>
                     </div>
                 `;
 
@@ -882,10 +892,11 @@ export default {
                         <p><a href="${resetLink}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Reset Password</a></p>
                         <p>Or copy this link: ${resetLink}</p>
                         <p>This link will expire in 15 minutes.</p>
+                        <p>If you didn't request a password reset, please ignore this email.</p>
+                        <p>Support: <a href="mailto:support@caffeine.ink">support@caffeine.ink</a></p>
                     </div>
                 `;
 
-                // 不等待邮件发送结果，直接返回成功，避免泄露信息或超时
                 ctx.waitUntil(sendEmail(env, email, "Reset your password - coffeeroom", htmlContent));
             }
 
@@ -1618,7 +1629,6 @@ async function sendEmail(env, to, subject, htmlContent) {
         if (res.ok) {
             return true;
         } else {
-            // 如果能获取错误详情最好打印一下，方便调试
             try {
                 const data = await res.json();
                 console.error('Resend API Error:', data);

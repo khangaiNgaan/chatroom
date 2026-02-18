@@ -70,7 +70,13 @@
           
           <div class="note" style="margin: 10px 0;">This is not required. If you want, you can bind your email here.</div>
           <div class="title" style="margin: 30px 0 20px 0;">2FA Settings</div>
-          <div class="note" style="margin: 10px 0;">Enable two-factor authentication (2FA) can help to protect your account from unauthorized access.</div>
+          
+          <div id="2fa-enabled-msg" style="display: none; font-size: 14px; margin-bottom: 5px; font-family: 'unifont', sans-serif;">
+              <span style="color:var(--success-color);">2FA is currently enabled.</span>
+          </div>
+
+          <div style="font-size: 14px; margin-top: 20px;"><a href="/user/2fa.html" id="2fa-link">2FA Settings &gt;</a></div>
+          <div class="note" style="margin: 10px 0;">Enable two-factor authentication (2FA) to add an extra layer of security to your account.</div>
           <div class="title" style="margin: 30px 0 20px 0;">Delete Account</div>
           <div class="note" style="margin: 10px 0;">Delete your account permanently. This action is irreversible.</div>
 

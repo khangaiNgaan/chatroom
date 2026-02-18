@@ -58,10 +58,12 @@
             <div class="authbox">
                 <span class="text">Welcome back!</span>
             </div>
-            <div class="authbox">
+            <!-- Login Box -->
+            <div class="authbox" id="login-box">
                 <div id="auth-message" class="auth-message"></div>
                 <br>
-                <form id="login-form" method="POST" action="/api/login">
+                <!-- Login Form -->
+                <form id="login-form">
                     <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
                     <div class="input-group"><input type="password" id="password" name="password" placeholder="password" required /></div>
                     <div class="input-group"><div class="cf-turnstile" data-sitekey="0x4AAAAAACJid3sBnLLYO4zB"></div></div>
@@ -69,8 +71,43 @@
                 </form>
                 <br>
             </div>
-            <div class="authbox">
+
+            <!-- 2FA Box -->
+            <div class="authbox" id="2fa-box" style="display: none;">
+                <div id="auth-message-2fa" class="auth-message"></div>
+                <br>
+                <form id="2fa-form">
+                    <div class="text" style="margin-bottom: 10px;">Please enter your 2FA code</div>
+                    <div class="input-group">
+                        <input type="text" id="2fa-code" name="code" placeholder="000000" required autocomplete="off" />
+                    </div>
+                    <button type="submit">verify</button>
+                </form>
+                <br>
+            </div>
+
+            <!-- Recovery Code Box -->
+            <div class="authbox" id="recover-box" style="display: none;">
+                <div id="auth-message-recover" class="auth-message"></div>
+                <br>
+                <form id="recover-form">
+                    <div class="text" style="margin-bottom: 10px;">Enter recovery code</div>
+                    <div class="input-group">
+                        <input type="text" id="recover-code" name="code" placeholder="xxxxx-xxxxx" required autocomplete="off" />
+                    </div>
+                    <button type="submit">verify</button>
+                </form>
+                <br>
+            </div>
+            <div class="authbox" id="bottom-box-default">
                 <span class="text">Don't have an account? Let's <a href="/auth/signup.html">sign up</a>. </span><br><span class="text">Or login with your <a href="/auth/tokens.html">tokens</a>. <a href="/auth/forgot.html">Forgot password?</a></span><br>
+            </div>
+
+            <div class="authbox" id="bottom-box-2fa" style="display: none;">
+                <div style="display: flex; justify-content: space-between; padding: 5px; width: 100%; box-sizing: border-box;">
+                    <a href="#" onclick="location.reload(); return false;" style="font-size: 14px;">&lt; return</a>
+                    <a href="#" id="toggle-auth-method" style="font-size: 14px;">use recovery code</a>
+                </div>
             </div>
           </div>
           <br>
@@ -82,57 +119,150 @@
     </div>
     <script src="/scripts/theme.js"></script>
     <script>
-      const form = document.getElementById('login-form');
-      const msgBox = document.getElementById('auth-message');
+      const loginBox = document.getElementById('login-box');
+      const twoFaBox = document.getElementById('2fa-box');
+      const recoverBox = document.getElementById('recover-box');
+      
+      const loginForm = document.getElementById('login-form');
+      const twoFaForm = document.getElementById('2fa-form');
+      const recoverForm = document.getElementById('recover-form');
+      
+      const msgBoxLogin = document.getElementById('auth-message');
+      const msgBox2Fa = document.getElementById('auth-message-2fa');
+      const msgBoxRecover = document.getElementById('auth-message-recover');
+      
+      const bottomBoxDefault = document.getElementById('bottom-box-default');
+      const bottomBox2Fa = document.getElementById('bottom-box-2fa');
+      const toggleAuthMethod = document.getElementById('toggle-auth-method');
+      
+      let tempToken = null;
 
-      // 处理原生表单验证提示
-      form.querySelectorAll('input').forEach(input => {
-          input.addEventListener('invalid', function(e) {
-              e.preventDefault();
-              const tip = document.createElement('div');
-              tip.className = 'error-tip';
-              tip.innerText = this.validationMessage;
-              this.parentNode.appendChild(tip);
-              setTimeout(() => { tip.remove(); }, 2000);
+      function showMessage(msg, type = 'error') {
+          // Determine which box is active
+          let activeMsgBox = msgBoxLogin;
+          if (twoFaBox.style.display !== 'none') {
+              activeMsgBox = msgBox2Fa;
+          } else if (recoverBox.style.display !== 'none') {
+              activeMsgBox = msgBoxRecover;
+          }
+
+          activeMsgBox.innerText = msg;
+          activeMsgBox.className = `auth-message ${type}`;
+          activeMsgBox.style.display = 'block';
+      }
+
+      function hideMessage() {
+          msgBoxLogin.style.display = 'none';
+          msgBox2Fa.style.display = 'none';
+          msgBoxRecover.style.display = 'none';
+      }
+
+      function setupValidation(form) {
+          form.querySelectorAll('input').forEach(input => {
+              input.addEventListener('invalid', function(e) {
+                  e.preventDefault();
+                  const oldTip = this.parentNode.querySelector('.error-tip');
+                  if (oldTip) oldTip.remove();
+                  const tip = document.createElement('div');
+                  tip.className = 'error-tip';
+                  tip.innerText = this.validationMessage;
+                  this.parentNode.appendChild(tip);
+                  setTimeout(() => { tip.remove(); }, 2000);
+              });
           });
+      }
+      setupValidation(loginForm);
+      setupValidation(twoFaForm);
+      setupValidation(recoverForm);
+
+      // Toggle Logic
+      toggleAuthMethod.addEventListener('click', (e) => {
+          e.preventDefault();
+          hideMessage();
+          
+          if (twoFaBox.style.display !== 'none') {
+              twoFaBox.style.display = 'none';
+              recoverBox.style.display = 'block';
+              toggleAuthMethod.innerText = "use 2FA code";
+          } else {
+              recoverBox.style.display = 'none';
+              twoFaBox.style.display = 'block';
+              toggleAuthMethod.innerText = "use recovery code";
+          }
       });
 
-      // 接管表单提交
-      form.addEventListener('submit', async function(e) {
+      // 1. Login Submit
+      loginForm.addEventListener('submit', async function(e) {
           e.preventDefault();
-          msgBox.style.display = 'none';
-          msgBox.className = 'auth-message';
+          hideMessage();
 
-          const formData = new FormData(form);
+          const formData = new FormData(loginForm);
 
           try {
               const res = await fetch('/api/login', {
                   method: 'POST',
                   body: formData
               });
-              
               const data = await res.json();
 
               if (data.success) {
-                  msgBox.innerText = data.message;
-                  msgBox.style.display = 'block';
-                  msgBox.classList.add('success');
-                  // 成功后延迟跳转
-                  setTimeout(() => {
-                      window.location.href = '/';
-                  }, 2000);
+                  if (data['2fa_required']) {
+                      tempToken = data.temp_token;
+                      loginBox.style.display = 'none';
+                      twoFaBox.style.display = 'block';
+                      bottomBoxDefault.style.display = 'none';
+                      bottomBox2Fa.style.display = 'flex';
+                  } else {
+                      showMessage(data.message, "success");
+                      setTimeout(() => { window.location.href = '/'; }, 2000);
+                  }
               } else {
-                  msgBox.innerText = data.message;
-                  msgBox.style.display = 'block';
-                  msgBox.classList.add('error');
-                  // 失败重置 Turnstile
-                  if (window.turnstile) window.turnstile.reset();
+                  showMessage(data.message, "error");
+                  if (window.turnstile) turnstile.reset();
               }
           } catch (err) {
-              msgBox.innerText = "network error";
-              msgBox.style.display = 'block';
-              msgBox.classList.add('error');
+              showMessage("network error", "error");
           }
+      });
+
+      // Helper for 2FA/Recovery Submit
+      async function submitCode(code, type) {
+          hideMessage();
+          const formData = new FormData();
+          formData.append('temp_token', tempToken);
+          formData.append('code', code);
+          formData.append('type', type);
+
+          try {
+              const res = await fetch('/api/login/2fa', {
+                  method: 'POST',
+                  body: formData
+              });
+              const data = await res.json();
+
+              if (data.success) {
+                  showMessage(data.message, "success");
+                  setTimeout(() => { window.location.href = '/'; }, 2000);
+              } else {
+                  showMessage(data.message, "error");
+              }
+          } catch (err) {
+              showMessage("network error", "error");
+          }
+      }
+
+      // 2. 2FA Submit
+      twoFaForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const code = document.getElementById('2fa-code').value;
+          await submitCode(code, 'totp');
+      });
+
+      // 3. Recovery Submit
+      recoverForm.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          const code = document.getElementById('recover-code').value;
+          await submitCode(code, 'recovery');
       });
     </script>
     <script src="/scripts/version.js"></script>

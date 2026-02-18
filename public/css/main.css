@@ -23,6 +23,7 @@
     --button-hover-color: #ecf1f4;
     --button-active-color: #dee4e8;
     --msg-bg-color: #e1eaf1;
+    --key-bg-color: #eff3f7;
     --connection-green: #347b68;
     --connection-red: #c05858;
     --success-color: #347b68;
@@ -44,6 +45,7 @@
     --button-hover-color: #444f5d;
     --button-active-color: #39424e;
     --msg-bg-color: #444f5d;
+    --key-bg-color: #444f5d;
     --connection-green: #A7D3A6;
     --connection-red: #D67A85;
     --success-color: #A7D3A6;
@@ -65,6 +67,7 @@
     --button-hover-color: #ffffff;
     --button-active-color: #eeeeee;
     --msg-bg-color: #ffffff;
+    --key-bg-color: #ffffff;
     --connection-green: #000000;
     --connection-red: #000000;
     --success-color: #000000;

@@ -1,6 +1,8 @@
 import bcrypt from 'bcryptjs';
 import { serialize, parse } from 'cookie';
 import { SignJWT, jwtVerify } from 'jose';
+import { generateSecret, generateURI, verify, generate } from 'otplib';
+import QRCode from 'qrcode';
 
 /* Worker 入口 */
 
@@ -37,7 +39,7 @@ export default {
             
             // 2. 从数据库获取详细信息
             // 这样可以获取到 signup_date 等不在 Token 里的信息
-            const user = await env.DB.prepare("SELECT uid, username, role, signup_date, email, email_verified FROM users WHERE uid = ?")
+            const user = await env.DB.prepare("SELECT uid, username, role, signup_date, email, email_verified, two_factor_enabled FROM users WHERE uid = ?")
                 .bind(payload.uid)
                 .first();
 
@@ -966,6 +968,10 @@ export default {
              `, { headers: { "Content-Type": "text/html" } });
         }
 
+        // Get User 2FA Status
+        const user = await env.DB.prepare("SELECT two_factor_enabled FROM users WHERE uid = ?").bind(record.uid).first();
+        const is2FA = user && user.two_factor_enabled === 1;
+
         // 返回重置表单
         return new Response(`
             <!DOCTYPE html>
@@ -976,6 +982,7 @@ export default {
                 <title>reset password - coffeeroom</title>
                 <link rel="stylesheet" href="/css/auth.css">
                 <script src="/scripts/theme.js"></script>
+                <script>const is2FAEnabled = ${is2FA};</script>
             </head>
             <body>
                 <div class="box">
@@ -988,11 +995,17 @@ export default {
                             <span class="text">Enter your new password below.</span>
                         </div>
                         <div class="authbox">
+                            <div id="auth-message" class="auth-message"></div>
                             <br>
-                            <form id="reset-password-form" method="POST" action="/api/auth/reset-password">
+                            <form id="reset-password-form">
                                 <input type="hidden" name="token" value="${token}">
                                 <div class="input-group"><input type="password" name="password" placeholder="new password" required /></div>
                                 <div class="input-group"><input type="password" name="confirm-password" placeholder="confirm new password" required /></div>
+                                
+                                <div class="input-group" id="2fa-group" style="display: none;">
+                                    <input type="text" name="code" placeholder="2FA / recovery code" autocomplete="off" />
+                                </div>
+
                                 <button type="submit">reset password</button>
                             </form>
                             <br>
@@ -1001,7 +1014,15 @@ export default {
                     </div>
                 </div>
                 <script>
+                    if (is2FAEnabled) {
+                        const group = document.getElementById('2fa-group');
+                        group.style.display = 'block';
+                        group.querySelector('input').required = true;
+                    }
+
                     const form = document.getElementById('reset-password-form');
+                    const msgBox = document.getElementById('auth-message');
+
                     form.querySelectorAll('input').forEach(input => {
                         input.addEventListener('invalid', function(e) {
                             e.preventDefault();
@@ -1014,6 +1035,37 @@ export default {
                             this.parentNode.appendChild(tip);
                             setTimeout(() => { tip.remove(); }, 2000);
                         });
+                    });
+
+                    form.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        msgBox.style.display = 'none';
+                        msgBox.className = 'auth-message';
+
+                        const formData = new FormData(form);
+                        try {
+                            const res = await fetch('/api/auth/reset-password', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            
+                            const text = await res.text();
+                            
+                            if (res.ok) {
+                                // If success, backend returns a success HTML page
+                                document.open();
+                                document.write(text);
+                                document.close();
+                            } else {
+                                msgBox.innerText = text || "Error resetting password";
+                                msgBox.className = "auth-message error";
+                                msgBox.style.display = 'block';
+                            }
+                        } catch (err) {
+                            msgBox.innerText = "Network error";
+                            msgBox.className = "auth-message error";
+                            msgBox.style.display = 'block';
+                        }
                     });
                 </script>
             </body>
@@ -1030,6 +1082,7 @@ export default {
             const token = formData.get("token");
             const password = formData.get("password");
             const confirmPassword = formData.get("confirm-password");
+            const code = formData.get("code");
 
             if (password !== confirmPassword) {
                 return new Response("Passwords do not match", { status: 400 });
@@ -1038,6 +1091,60 @@ export default {
             const record = await env.DB.prepare("SELECT * FROM password_resets WHERE token = ?").bind(token).first();
             if (!record || record.expires_at < Date.now()) {
                 return new Response("Invalid or expired token", { status: 400 });
+            }
+
+            // 检查 2FA
+            const user = await env.DB.prepare("SELECT * FROM users WHERE uid = ?").bind(record.uid).first();
+            if (user && user.two_factor_enabled) {
+                if (!code) {
+                    return new Response("2FA code required", { status: 400 });
+                }
+
+                let isValid = false;
+                let decryptedSecret = null;
+
+                if (user.totp_secret && env.ENCRYPTION_KEY) {
+                    try {
+                        decryptedSecret = await decrypt(user.totp_secret, env.ENCRYPTION_KEY);
+                    } catch(e) {}
+                }
+
+                // 1. Try TOTP
+                if (decryptedSecret) {
+                    try {
+                        const verifyResult = await verify({ 
+                            token: code, 
+                            secret: decryptedSecret,
+                            window: 1 
+                        });
+                        if (typeof verifyResult === 'boolean') isValid = verifyResult;
+                        else if (typeof verifyResult === 'object' && verifyResult !== null) isValid = verifyResult.valid === true;
+                    } catch (e) {}
+                }
+
+                // 2. Try Recovery Code
+                if (!isValid && user.recovery_codes && decryptedSecret) {
+                    try {
+                        const hashedCodes = JSON.parse(user.recovery_codes);
+                        
+                        const salt = user.uid + decryptedSecret;
+                        const inputHash = await sha256(code + salt);
+
+                        const index = hashedCodes.indexOf(inputHash);
+                        if (index !== -1) {
+                            isValid = true;
+                            // 移除已使用的码
+                            hashedCodes.splice(index, 1);
+                            await env.DB.prepare("UPDATE users SET recovery_codes = ? WHERE uid = ?")
+                                .bind(JSON.stringify(hashedCodes), user.uid)
+                                .run();
+                        }
+                    } catch (e) { console.error("Error parsing recovery codes", e); }
+                }
+
+                if (!isValid) {
+                    return new Response("Invalid 2FA code", { status: 400 });
+                }
             }
 
             // 更新密码
@@ -1222,6 +1329,29 @@ export default {
                 });
             }
 
+            // 2.3.1 检查 2FA
+            if (user.two_factor_enabled) {
+                // 生成临时 Token (5分钟有效)
+                const tempToken = await new SignJWT({ 
+                    uid: user.uid, 
+                    role: user.role,
+                    scope: '2fa_pending'
+                })
+                    .setProtectedHeader({ alg: 'HS256' })
+                    .setIssuedAt()
+                    .setExpirationTime('5m')
+                    .sign(JWT_SECRET);
+
+                return new Response(JSON.stringify({ 
+                    success: true, 
+                    message: "2fa required",
+                    "2fa_required": true,
+                    temp_token: tempToken
+                }), {
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
             // 2.4 Create Session & Generate JWT
             const sessionId = crypto.randomUUID();
             // ip is already defined above in the function
@@ -1266,6 +1396,154 @@ export default {
 
         } catch (err) {
             return new Response(JSON.stringify({ success: false, message: "login error: " + err.message }), { 
+                status: 500,
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+    }
+
+    // ==================================================
+    // 2.2 登录验证第二步 (POST /api/login/2fa)
+    // ==================================================
+    if (request.method === "POST" && url.pathname === "/api/login/2fa") {
+        try {
+            const formData = await request.formData();
+            const tempToken = formData.get("temp_token");
+            const code = formData.get("code");
+
+            if (!tempToken || !code) {
+                return new Response(JSON.stringify({ success: false, message: "missing parameters" }), { 
+                    status: 400,
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
+            // 1. 验证 temp_token
+            let payload;
+            try {
+                const { payload: p } = await jwtVerify(tempToken, JWT_SECRET);
+                if (p.scope !== '2fa_pending') throw new Error('invalid scope');
+                payload = p;
+            } catch (e) {
+                return new Response(JSON.stringify({ success: false, message: "session expired, please login again" }), { 
+                    status: 401,
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
+            // 2. 获取用户 Secret 和 Recovery Codes
+            const user = await env.DB.prepare("SELECT * FROM users WHERE uid = ?").bind(payload.uid).first();
+            if (!user) return new Response(JSON.stringify({ success: false, message: "user not found" }), { 
+                status: 404,
+                headers: { "Content-Type": "application/json" }
+            });
+
+            // 3. 验证 TOTP 或 Recovery Code
+            let isValid = false;
+            let usedRecoveryCode = false;
+            let decryptedSecret = null;
+            const type = formData.get("type"); // 'totp' or 'recovery'
+            
+            const shouldCheckTotp = !type || type === 'totp';
+            const shouldCheckRecovery = !type || type === 'recovery';
+
+            if (user.totp_secret && env.ENCRYPTION_KEY) {
+                try {
+                    decryptedSecret = await decrypt(user.totp_secret, env.ENCRYPTION_KEY);
+                } catch(e) {}
+            }
+
+            // 3.1 尝试 TOTP
+            if (shouldCheckTotp && decryptedSecret) {
+                try {
+                    // Only try TOTP verify if it looks somewhat like a token, or let verify fail gracefully
+                    // verify throws if token length is not digits (default 6)
+                    const verifyResult = await verify({ 
+                        token: code, 
+                        secret: decryptedSecret,
+                        window: 1 
+                    });
+                    
+                    if (typeof verifyResult === 'boolean') isValid = verifyResult;
+                    else if (typeof verifyResult === 'object' && verifyResult !== null) isValid = verifyResult.valid === true;
+                } catch (e) {
+                    // Ignore TOTP verification errors (e.g. if code is a recovery code)
+                    // console.log("TOTP check skipped/failed:", e.message);
+                }
+            }
+
+            // 3.2 尝试 Recovery Code
+            if (!isValid && shouldCheckRecovery && user.recovery_codes && decryptedSecret) {
+                try {
+                    const hashedCodes = JSON.parse(user.recovery_codes);
+                    
+                    const salt = user.uid + decryptedSecret;
+                    const inputHash = await sha256(code + salt);
+                    
+                    const index = hashedCodes.indexOf(inputHash);
+                    if (index !== -1) {
+                        isValid = true;
+                        usedRecoveryCode = true;
+                        // 移除已使用的码
+                        hashedCodes.splice(index, 1);
+                        await env.DB.prepare("UPDATE users SET recovery_codes = ? WHERE uid = ?")
+                            .bind(JSON.stringify(hashedCodes), user.uid)
+                            .run();
+                    }
+                } catch (e) { console.error("Error parsing recovery codes", e); }
+            }
+
+            if (!isValid) {
+                return new Response(JSON.stringify({ success: false, message: "invalid verification code" }), { 
+                    status: 400,
+                    headers: { "Content-Type": "application/json" }
+                });
+            }
+
+            // 4. 创建正式 Session
+            const sessionId = crypto.randomUUID();
+            const ip = request.headers.get("CF-Connecting-IP") || "unknown";
+            const userAgent = request.headers.get("User-Agent") || "unknown";
+            const expiresAt = Date.now() + (7 * 24 * 60 * 60 * 1000); // 7 days
+
+            await env.DB.prepare("INSERT INTO sessions (id, uid, ip, user_agent, created_at, expires_at) VALUES (?, ?, ?, ?, ?, ?)")
+                .bind(sessionId, user.uid, ip, userAgent, Date.now(), expiresAt)
+                .run();
+
+            const token = await new SignJWT({ 
+                uid: user.uid, 
+                username: user.username, 
+                role: user.role,
+                sessionId: sessionId
+            })
+                .setProtectedHeader({ alg: 'HS256' })
+                .setIssuedAt()
+                .setExpirationTime('7d')
+                .sign(JWT_SECRET);
+
+            const isSecure = url.protocol === 'https:';
+            const cookieHeader = serialize('session', token, {
+                httpOnly: true,
+                secure: isSecure, 
+                domain: env.COOKIE_DOMAIN,
+                sameSite: 'lax',
+                maxAge: 60 * 60 * 24 * 7, 
+                path: '/'
+            });
+
+            return new Response(JSON.stringify({ 
+                success: true, 
+                message: "login successful" + (usedRecoveryCode ? " (recovery code used)" : "")
+            }), {
+                status: 200,
+                headers: {
+                    'Set-Cookie': cookieHeader,
+                    "Content-Type": "application/json"
+                }
+            });
+
+        } catch (e) {
+            return new Response(JSON.stringify({ success: false, message: "server error: " + e.message }), { 
                 status: 500,
                 headers: { "Content-Type": "application/json" }
             });
@@ -1437,6 +1715,156 @@ export default {
             });
         }
     }
+
+    // ==================================================
+    //  2FA 管理 (POST /api/user/2fa/...)
+    // ==================================================
+    if (url.pathname.startsWith("/api/user/2fa/")) {
+        const cookieHeader = request.headers.get("Cookie");
+        if (!cookieHeader) return new Response(null, { status: 401 });
+        const cookies = parse(cookieHeader);
+        if (!cookies.session) return new Response(null, { status: 401 });
+
+        let payload;
+        try {
+            const { payload: p } = await jwtVerify(cookies.session, JWT_SECRET);
+            payload = p;
+        } catch (e) {
+            return new Response(null, { status: 401 });
+        }
+
+        // 1. Setup: 生成密钥和二维码
+        if (request.method === "POST" && url.pathname === "/api/user/2fa/setup") {
+            const secret = generateSecret();
+            
+            // 加密存储 Secret
+            if (!env.ENCRYPTION_KEY) {
+                return new Response(JSON.stringify({ success: false, message: "server config error: encryption key missing" }), { status: 500 });
+            }
+            const encryptedSecret = await encrypt(secret, env.ENCRYPTION_KEY);
+
+            const otpauth = generateURI({
+                secret: secret,
+                label: payload.username,
+                issuer: "coffeeroom",
+                algorithm: "SHA1",
+                digits: 6,
+                period: 30
+            });
+
+            // Cloudflare Workers don't support Canvas, so we generate SVG
+            const svgString = await QRCode.toString(otpauth, { type: 'svg' });
+            const qrCodeDataUrl = `data:image/svg+xml;base64,${btoa(svgString)}`;
+
+            // 暂存 secret，但不开启 2FA
+            await env.DB.prepare("UPDATE users SET totp_secret = ? WHERE uid = ?")
+                .bind(encryptedSecret, payload.uid)
+                .run();
+
+            return new Response(JSON.stringify({ 
+                success: true, 
+                secret: secret, 
+                qrCode: qrCodeDataUrl 
+            }), { headers: { "Content-Type": "application/json" } });
+        }
+
+        // 2. Enable: 验证并正式开启
+        if (request.method === "POST" && url.pathname === "/api/user/2fa/enable") {
+            const formData = await request.formData();
+            const code = formData.get("code");
+
+            const user = await env.DB.prepare("SELECT totp_secret FROM users WHERE uid = ?").bind(payload.uid).first();
+            if (!user || !user.totp_secret) {
+                return new Response(JSON.stringify({ success: false, message: "2FA not set up" }), { status: 400 });
+            }
+
+            // 解密 Secret
+            if (!env.ENCRYPTION_KEY) return new Response("server config error", { status: 500 });
+            let decryptedSecret;
+            try {
+                decryptedSecret = await decrypt(user.totp_secret, env.ENCRYPTION_KEY);
+            } catch (e) {
+                return new Response(JSON.stringify({ success: false, message: "encryption error, please reset 2FA" }), { status: 500 });
+            }
+            
+            try {
+                // verify: { token, secret }
+                const verifyResult = await verify({ 
+                    token: code, 
+                    secret: decryptedSecret,
+                    window: 1 // Default to 1 step drift
+                });
+                
+                let isValid = false;
+                if (typeof verifyResult === 'boolean') {
+                    isValid = verifyResult;
+                } else if (typeof verifyResult === 'object' && verifyResult !== null) {
+                    isValid = verifyResult.valid === true; 
+                }
+
+                if (!isValid) {
+                    return new Response(JSON.stringify({ success: false, message: "invalid verification code" }), { status: 400 });
+                }
+            } catch (err) {
+                 console.error("[2FA Enable] Verify Error:", err);
+                 return new Response(JSON.stringify({ success: false, message: "verification error" }), { status: 500 });
+            }
+
+            // 生成恢复码 (10个 xxxxx-xxxxx 格式) 并哈希化存储
+            const recoveryCodes = [];
+            const hashedCodes = [];
+            // 使用解密后的 Secret 作为 Salt，保证 Salt 的稳定性
+            const salt = payload.uid + decryptedSecret;
+
+            for (let i = 0; i < 10; i++) {
+                const part1 = crypto.randomUUID().split('-')[0].substring(0, 5);
+                const part2 = crypto.randomUUID().split('-')[0].substring(0, 5);
+                const code = `${part1}-${part2}`;
+                recoveryCodes.push(code);
+                
+                // Hash the code with salt
+                hashedCodes.push(await sha256(code + salt));
+            }
+
+            // 获取用户信息以提供下载所需的数据
+            const userInfo = await env.DB.prepare("SELECT email FROM users WHERE uid = ?").bind(payload.uid).first();
+
+            await env.DB.prepare("UPDATE users SET two_factor_enabled = 1, recovery_codes = ? WHERE uid = ?")
+                .bind(JSON.stringify(hashedCodes), payload.uid)
+                .run();
+
+            return new Response(JSON.stringify({ 
+                success: true, 
+                message: "2FA enabled", 
+                username: payload.username,
+                email: userInfo ? userInfo.email : null,
+                recoveryCodes: recoveryCodes,
+                date: new Date().toISOString().split('T')[0]
+            }), { headers: { "Content-Type": "application/json" } });
+        }
+
+        // 3. Disable: 关闭 2FA
+        if (request.method === "POST" && url.pathname === "/api/user/2fa/disable") {
+            const formData = await request.formData();
+            const password = formData.get("password");
+
+            const user = await env.DB.prepare("SELECT password FROM users WHERE uid = ?").bind(payload.uid).first();
+            const isPasswordValid = await bcrypt.compare(password, user.password);
+            
+            if (!isPasswordValid) {
+                return new Response(JSON.stringify({ success: false, message: "incorrect password" }), { status: 400 });
+            }
+
+            await env.DB.prepare("UPDATE users SET two_factor_enabled = 0, totp_secret = NULL, recovery_codes = NULL WHERE uid = ?")
+                .bind(payload.uid)
+                .run();
+
+            return new Response(JSON.stringify({ success: true, message: "2FA disabled" }), {
+                headers: { "Content-Type": "application/json" }
+            });
+        }
+    }
+
 
     // ==================================================
     // 4. API: 历史记录 (GET /api/room/:room/history)
@@ -2187,4 +2615,65 @@ export class ChatRoom {
             }
         });
     }
+}
+
+// Helper: SHA-256 Hash
+async function sha256(message) {
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Helper: AES-256-GCM Encryption
+async function encrypt(text, keyString) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encoded = new TextEncoder().encode(text);
+    
+    // Derive a 32-byte key from the input string using SHA-256
+    const keyBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(keyString));
+    
+    const key = await crypto.subtle.importKey(
+        "raw",
+        keyBuffer,
+        { name: "AES-GCM" },
+        false,
+        ["encrypt"]
+    );
+
+    const ciphertext = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        encoded
+    );
+
+    // Return IV:CipherText (Hex encoded)
+    const ivHex = Array.from(iv).map(b => b.toString(16).padStart(2, '0')).join('');
+    const cipherHex = Array.from(new Uint8Array(ciphertext)).map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${ivHex}:${cipherHex}`;
+}
+
+async function decrypt(text, keyString) {
+    const [ivHex, cipherHex] = text.split(':');
+    if (!ivHex || !cipherHex) throw new Error("Invalid cipher format");
+
+    const iv = new Uint8Array(ivHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+    const ciphertext = new Uint8Array(cipherHex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+
+    const keyBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(keyString));
+    const key = await crypto.subtle.importKey(
+        "raw",
+        keyBuffer,
+        { name: "AES-GCM" },
+        false,
+        ["decrypt"]
+    );
+
+    const decrypted = await crypto.subtle.decrypt(
+        { name: "AES-GCM", iv: iv },
+        key,
+        ciphertext
+    );
+
+    return new TextDecoder().decode(decrypted);
 }

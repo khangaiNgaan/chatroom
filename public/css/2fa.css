@@ -1,0 +1,216 @@
+/* 2fa.css */
+
+.error-tip {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    font-family: 'unifont', sans-serif;
+    color: var(--text-color);
+    background-color: var(--popup-bg-color);
+    backdrop-filter: blur(2px);
+    --webkit-backdrop-filter: blur(2px);
+    padding: 6px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.auth-message {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 10px;
+    padding: 10px 20px;
+    border-radius: 3px;
+    border: 1px solid var(--border-color);
+    background-color: var(--chat-bg-color);
+    box-sizing: border-box;
+    display: none;
+    width: 100%;
+    max-width: 450px;
+}
+.auth-message.success {
+    color: var(--success-color);
+    display: block;
+}
+.auth-message.error {
+    color: var(--error-color);
+    display: block;
+}
+
+form {
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	width: 100%;
+    align-items: flex-start;
+}
+
+.input-group {
+    position: relative;
+    display: block;
+    width: 100%;
+    max-width: 200px;
+}
+
+input[type="text"],
+input[type="password"] {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    color: var(--text-color);
+    background-color: var(--chat-bg-color);
+    border: 1px solid var(--border-color);
+	border-radius: 3px;
+    width: 100%;
+    max-width: 200px;
+    padding: 3px 5px;
+	min-width: 0;
+    height: 23px;
+    box-sizing: border-box;
+}
+
+input:focus {
+    outline: 1px solid var(--text-color);
+}
+
+button {
+    font-family: 'unifont', sans-serif;
+    font-size: 14px;
+    color: var(--text-color);
+    background-color: var(--button-color);
+    border: 1px solid var(--border-color);
+	border-radius: 3px;
+    height: 23px;
+    width: auto;
+  	flex-shrink: 0;
+    margin-top: 10px;
+    box-sizing: border-box;
+    padding: 0 10px 2px 10px;
+}
+
+button:hover {
+    cursor: pointer;
+    background-color: var(--button-hover-color);
+}
+
+button:active {
+    background-color: var(--button-active-color);
+}
+
+.container-settings {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    margin-top: 20px;
+    margin-bottom: 50px;
+    width: 100%;
+}
+
+/* 2FA Specific Styles */
+
+.step {
+    display: none;
+    width: 100%;
+}
+
+.step.active {
+    display: block;
+}
+
+.step-title {
+    font-family: 'unifont', sans-serif;
+    font-size: 16px;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+#qrcode {
+    margin: 15px 0;
+}
+
+#qrcode img {
+    max-width: 200px;
+    border: 5px solid white; 
+    border-radius: 3px;
+}
+
+.recovery-codes {
+    background: var(--chat-bg-color);
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    font-family: 'unifont', monospace;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 15px 0;
+    box-sizing: border-box;
+    max-width: 450px;
+}
+
+.recovery-code-item {
+    padding: 2px 5px;
+    background: var(--key-bg-color);
+    border-radius: 2px;
+    text-align: center;
+}
+
+.secret-key-display {
+    font-family: 'unifont', monospace;
+    background-color: var(--key-bg-color);
+    color: var(--text-color);
+    padding: 2px 5px;
+    border-radius: 3px;
+    user-select: all;
+    word-break: break-all;
+}
+
+.action-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.btn-remove {
+    color: var(--connection-red);
+    border: 1px solid var(--border-color);
+    background: var(--button-color);
+    padding: 0px 10px 2px 10px;
+    cursor: pointer;
+    height: 23px;
+    font-size: 0.8em;
+    border-radius: 3px;
+    white-space: nowrap;
+    width: auto;
+    box-sizing: border-box;
+    margin-top: 0 !important;
+}
+
+.btn-remove:hover {
+    background: var(--connection-red);
+    color: var(--button-color);
+    border-color: var(--connection-red);
+}
+
+.btn-remove:active {
+    background: var(--button-color);
+    color: var(--connection-red);
+    border-color: var(--connection-red);
+}
+
+.remove-form {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 5px;
+    max-width: 450px;
+    width: 100%;
+    box-sizing: border-box;
+    flex-direction: row;
+    align-items: center;
+}

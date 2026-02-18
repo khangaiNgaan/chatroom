@@ -22,6 +22,12 @@ async function loadUserInfo() {
                     if (boundSection) boundSection.style.display = 'none';
                 }
             }
+
+            // 2FA 状态
+            const twoFaMsg = document.getElementById('2fa-enabled-msg');
+            if (user.two_factor_enabled && twoFaMsg) {
+                twoFaMsg.style.display = 'block';
+            }
         } else {
              window.location.href = '/auth/login.html';
         }

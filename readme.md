@@ -1,6 +1,6 @@
 ### coffeeroom
 
-An open-source, lightweight chatroom implementation built with Vanilla JS.
+A chatroom implementation.
 
 ***
 

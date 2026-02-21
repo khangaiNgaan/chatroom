@@ -55,7 +55,11 @@ auth.post('/api/login', async (c) => {
             const user = await c.env.DB.prepare('SELECT * FROM users WHERE uid = ?').bind(tokenRecord.uid).first<User>()
             if (!user) return c.json({ success: false, message: 'user not found' }, 404)
 
-            if (loginUsername && user.username !== loginUsername) {
+            if (!loginUsername) {
+                return c.json({ success: false, message: 'username required for token login' }, 400)
+            }
+
+            if (user.username !== loginUsername) {
                 return c.json({ success: false, message: 'username does not match token owner' }, 403)
             }
 

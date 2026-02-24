@@ -81,6 +81,8 @@ WebSocket: `/websocket/:room`
 { "success": true, "message": "login successful" }
 ```
 
+注: 用户名-密码登录需要提交 Turnstile 人机检查响应, 自动程序请使用 AT 登录。使用 AT 登录可取得 90 天有效期的 session cookie, 你可以设计程序完成自动续签 (在到期前自动创建新的 AT 并换取新的 session cookie)。
+
 #### 3. `POST /api/logout`
 
 摘要: 结束当前 session。

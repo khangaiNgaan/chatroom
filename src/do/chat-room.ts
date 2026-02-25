@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
 import { jwtVerify } from 'jose'
-import { Bindings } from '../types'
+import { Bindings, Message } from '../types'
 
 export class ChatRoom extends DurableObject {
     state: any
@@ -344,7 +344,7 @@ export class ChatRoom extends DurableObject {
             const timestamp = Date.now()
             const msgId = this.generateMsgId(timestamp)
 
-            const messageObj = {
+            const messageObj: Message = {
                 msg_id: msgId,
                 sender_username: socket.userData.username,
                 sender_uid: socket.userData.uid,
@@ -357,6 +357,37 @@ export class ChatRoom extends DurableObject {
 
             await this.saveMessage(messageObj)
             this.broadcast(messageString, socket)
+
+            // bridge logic: forward to minecraft server via http bridge
+            if (roomName === "minecraft" && socket.userData.username !== "console" && this.env.BRIDGE_URL) {
+                const isDragon = socket.userData.username === "EnderDragon"
+                const nameColor = isDragon ? "dark_purple" : "aqua"
+                
+                // escape backslashes and double quotes
+                const safeText = data.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
+                
+                const tellraw = `/tellraw @a [{"text": "<", "color": "white"}, {"text": "${socket.userData.username}", "color": "${nameColor}"}, {"text": "> ", "color": "white"}, {"text": "${safeText}", "color": "white"}]`
+
+                // fetch and notify on success
+                fetch(this.env.BRIDGE_URL, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${this.env.BRIDGE_TOKEN}`
+                    },
+                    body: JSON.stringify({ command: tellraw })
+                }).then(async res => {
+                    if (res.ok) {
+                        this.broadcast(JSON.stringify({
+                            type: "bridge_status",
+                            status: "success",
+                            msg_id: msgId
+                        }))
+                        messageObj.is_bridged = true
+                        await this.saveMessage(messageObj)
+                    }
+                }).catch(err => console.error("Bridge Error:", (err as Error).message))
+            }
         })
 
         const closeHandler = () => {

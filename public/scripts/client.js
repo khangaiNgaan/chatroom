@@ -129,7 +129,7 @@ async function loadMoreMessages() {
                 for (let i = data.messages.length - 1; i >= 0; i--) {
                     const msg = data.messages[i];
                     const senderName = msg.sender_username || msg.sender || "anonymous";
-                    addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "prepend", msg.is_deleted, msg.is_censored);
+                    addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "prepend", msg.is_deleted, msg.is_censored, msg.is_bridged);
                 }
 
                 // 恢复滚动位置
@@ -316,13 +316,35 @@ function setupSocketListeners(socket) {
     console.log("收到:", event.data);
     try {
         const msg = JSON.parse(event.data);
+
+        // 处理从服务端发来的桥接成功状态推送
+        if (msg.type === "bridge_status" && msg.status === "success" && msg.msg_id) {
+            const existingDiv = document.querySelector(`.message[data-msg-id="${msg.msg_id}"]`);
+            if (existingDiv) {
+                const headerDiv = existingDiv.firstElementChild;
+                const copySpan = existingDiv.querySelector('.msg-id-copy');
+                if (headerDiv && copySpan && !existingDiv.querySelector('.bridge-success-mark')) {
+                    const checkmark = document.createElement('span');
+                    checkmark.className = "bridge-success-mark";
+                    checkmark.textContent = "✓";
+                    checkmark.style.color = "var(--success-color, #4caf50)";
+                    checkmark.style.marginRight = "5px";
+                    checkmark.style.marginLeft = "5px";
+                    checkmark.style.fontSize = "0.85em";
+                    checkmark.title = "已同步至 Minecraft";
+                    headerDiv.insertBefore(checkmark, copySpan);
+                }
+            }
+            return;
+        }
+
         // 初始化 cursor: 记录收到的第一条消息 ID (最老的一条)
         if (oldestMsgId === null && msg.msg_id) {
             oldestMsgId = msg.msg_id;
         }
 
         const senderName = msg.sender_username || msg.sender || "anonymous";
-        addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "append", msg.is_deleted, msg.is_censored);
+        addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "append", msg.is_deleted, msg.is_censored, msg.is_bridged);
     } catch (e) {
         // 向后兼容
         addMessage("anonymous", event.data, "received");
@@ -516,7 +538,7 @@ function appendTextWithBr(container, text) {
 }
 
 // 辅助函数：添加消息到屏幕
-function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, method = "append", isDeleted = false, isCensored = false) {
+function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, method = "append", isDeleted = false, isCensored = false, isBridged = false) {
     // 检查是否存在: 如果存在则更新内容
     if (msgId) {
         const existingDiv = document.querySelector(`.message[data-msg-id="${msgId}"]`);
@@ -573,6 +595,19 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     timeSpan.style.fontSize = "0.85em";
     timeSpan.style.fontFamily = "'unifont', monospace";
 
+    // bridged checkmark
+    let bridgeCheckmark = null;
+    if (isBridged) {
+        bridgeCheckmark = document.createElement('span');
+        bridgeCheckmark.className = "bridge-success-mark";
+        bridgeCheckmark.textContent = "✓";
+        bridgeCheckmark.style.color = "var(--success-color, #4caf50)";
+        bridgeCheckmark.style.marginRight = "5px";
+        bridgeCheckmark.style.marginLeft = "5px";
+        bridgeCheckmark.style.fontSize = "0.85em";
+        bridgeCheckmark.title = "已同步至 Minecraft";
+    }
+
     // copy msg-id 按钮
     const copySpan = document.createElement('span');
     copySpan.textContent = "#";
@@ -594,6 +629,7 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
 
     headerDiv.appendChild(senderSpan);
     headerDiv.appendChild(timeSpan);
+    if (bridgeCheckmark) headerDiv.appendChild(bridgeCheckmark);
     if (msgId) headerDiv.appendChild(copySpan);
 
     // --- 第二行：内容 ---

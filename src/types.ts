@@ -9,6 +9,8 @@ export type Bindings = {
   ENCRYPTION_KEY?: string
   COOKIE_DOMAIN?: string
   ASSETS?: Fetcher
+  BRIDGE_URL?: string
+  BRIDGE_TOKEN?: string
 }
 
 export type Variables = {
@@ -18,4 +20,16 @@ export type Variables = {
     role: string
     sessionId: string
   }
+}
+
+export type Message = {
+  msg_id: string
+  sender_username: string
+  sender_uid: string
+  channel: string
+  timestamp: number
+  text: string
+  is_deleted?: boolean
+  is_censored?: boolean
+  is_bridged?: boolean
 }

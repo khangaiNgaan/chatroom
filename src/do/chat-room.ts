@@ -360,9 +360,17 @@ export class ChatRoom extends DurableObject {
 
             // bridge logic: forward to minecraft server via http bridge
             if (roomName === "minecraft" && socket.userData.username !== "console" && this.env.BRIDGE_URL) {
-                const isDragon = socket.userData.username === "EnderDragon"
-                const nameColor = isDragon ? "dark_purple" : "aqua"
-                
+                let nameColor: string;
+                switch (socket.userData.username) {
+                    case "EnderDragon":
+                        nameColor = "dark_purple";
+                        break;
+                    case "Cloudrayyy":
+                        nameColor = "green";
+                        break;
+                    default:
+                        nameColor = "aqua";
+                }
                 // escape backslashes and double quotes
                 const safeText = data.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
                 

@@ -327,11 +327,10 @@ function setupSocketListeners(socket) {
                     const checkmark = document.createElement('span');
                     checkmark.className = "bridge-success-mark";
                     checkmark.textContent = "✓";
-                    checkmark.style.color = "var(--success-color, #4caf50)";
-                    checkmark.style.marginRight = "5px";
+                    checkmark.style.color = "var(--success-color, #347b68)";
                     checkmark.style.marginLeft = "5px";
                     checkmark.style.fontSize = "0.85em";
-                    checkmark.title = "已同步至 Minecraft";
+                    checkmark.title = "synced";
                     headerDiv.insertBefore(checkmark, copySpan);
                 }
             }
@@ -601,11 +600,10 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
         bridgeCheckmark = document.createElement('span');
         bridgeCheckmark.className = "bridge-success-mark";
         bridgeCheckmark.textContent = "✓";
-        bridgeCheckmark.style.color = "var(--success-color, #4caf50)";
-        bridgeCheckmark.style.marginRight = "5px";
+        bridgeCheckmark.style.color = "var(--success-color, #347b68)";
         bridgeCheckmark.style.marginLeft = "5px";
         bridgeCheckmark.style.fontSize = "0.85em";
-        bridgeCheckmark.title = "已同步至 Minecraft";
+        bridgeCheckmark.title = "synced";
     }
 
     // copy msg-id 按钮

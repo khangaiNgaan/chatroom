@@ -2,7 +2,7 @@
 
 © 2026 caffeine-Ink
 
-适用版本: coffeeroom `v1.12`
+适用版本: coffeeroom `v1.13`
 
 基础 URL: `https://room.caffeine.ink`
 

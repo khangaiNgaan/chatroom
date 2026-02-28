@@ -47,6 +47,8 @@ WebSocket: `/websocket/:room`
 
 鉴权: 无 (公开)
 
+请求类型: `application/x-www-form-urlencoded` 或 `multipart/form-data`
+
 参数:
 - username: `string`, e.g. `"flat_white"`
 
@@ -145,6 +147,8 @@ WebSocket: `/websocket/:room`
 摘要: 创建一个新的 Access Token (用于自动程序登录)。
 
 鉴权: `Session Cookie`
+
+请求类型: `application/x-www-form-urlencoded` 或 `multipart/form-data`
 
 参数:
 - label: `string`, e.g. `"Neko Bot"` (默认 `"New Token"`)

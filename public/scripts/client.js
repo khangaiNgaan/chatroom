@@ -583,6 +583,8 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
 
     } else if (sender === "system" || sender === "caffeine" || sender === "console") {
         senderSpan.style.color = "var(--admin-nom-color)";
+    } else if (sender === "EnderDragon") {
+        senderSpan.style.color = "var(--dragon-nom-color)";
     } else {
         senderSpan.style.color = "var(--nom-color)";
     }

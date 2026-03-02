@@ -31,6 +31,7 @@
     --my-nom-color: #5d8dc7;
     --admin-nom-color: #d79a40;
     --nom-color: #d868a3;
+    --dragon-nom-color: #7474de;
 }
 [data-theme="dark"] {
     --bg-color: #242931;
@@ -53,6 +54,7 @@
     --my-nom-color: #A7C6EC;
     --admin-nom-color: #F9E1BD; /* #C5E4C0 */
     --nom-color: #E8A5C8;
+    --dragon-nom-color: #9d9de8;
 }
 [data-theme="mono"] {
     --bg-color: #ffffff;
@@ -75,6 +77,7 @@
     --my-nom-color: #000000;
     --admin-nom-color: #000000;
     --nom-color: #000000;
+    --dragon-nom-color: #000000;
 }
 
 body {

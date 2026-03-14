@@ -99,7 +99,7 @@ async function init2FA() {
                 document.getElementById('qrcode').innerHTML = `<img src="${data.qrCode}" alt="QR Code">`;
                 document.getElementById('secret-text').textContent = data.secret;
             } else {
-                showMessage(data.message || "Failed to start setup.");
+                showMessage(data.message || "failed to start setup.");
             }
         } catch (e) {
             showMessage(e.message);

@@ -7,7 +7,7 @@ import { authMiddleware } from '../middleware/auth'
 import { sendEmail } from '../utils/email'
 import { encrypt, decrypt, sha256 } from '../utils/security'
 import * as emailTemplates from '../templates/email'
-import { User, Session, Token } from '../models'
+import { User, Session, OatRecord } from '../models'
 
 const user = new Hono<{ Bindings: Bindings, Variables: Variables }>()
 
@@ -33,6 +33,8 @@ user.get('/api/user', async (c) => {
 user.post('/api/user/change-password', async (c) => {
     try {
         const payload = c.get('user')!
+        if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+        
         const formData = await c.req.parseBody()
         const oldPassword = formData['old-password'] as string
         const newPassword = formData['new-password'] as string
@@ -60,6 +62,8 @@ user.post('/api/user/change-password', async (c) => {
 user.post('/api/user/bind-email', async (c) => {
     try {
         const payload = c.get('user')!
+        if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+        
         const formData = await c.req.parseBody()
         const email = formData['email'] as string
 
@@ -97,6 +101,8 @@ user.post('/api/user/bind-email', async (c) => {
 user.post('/api/user/unbind-email', async (c) => {
     try {
         const payload = c.get('user')!
+        if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+        
         const formData = await c.req.parseBody()
         const password = formData['password'] as string
         
@@ -120,6 +126,8 @@ user.post('/api/user/unbind-email', async (c) => {
 // 2FA Routes
 user.post('/api/user/2fa/setup', async (c) => {
     const payload = c.get('user')!
+    if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+    
     const secret = generateSecret()
 
     if (!c.env.ENCRYPTION_KEY) return c.json({ success: false, message: 'server config error' }, 500)
@@ -145,6 +153,8 @@ user.post('/api/user/2fa/setup', async (c) => {
 
 user.post('/api/user/2fa/enable', async (c) => {
     const payload = c.get('user')!
+    if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+    
     const formData = await c.req.parseBody()
     const code = formData['code'] as string
 
@@ -201,6 +211,8 @@ user.post('/api/user/2fa/enable', async (c) => {
 
 user.post('/api/user/2fa/disable', async (c) => {
     const payload = c.get('user')!
+    if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+    
     const formData = await c.req.parseBody()
     const password = formData['password'] as string
 
@@ -234,45 +246,59 @@ user.get('/api/sessions', async (c) => {
 
 user.delete('/api/sessions', async (c) => {
     const payload = c.get('user')!
+    if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+    
     const id = c.req.query('id')
-    if (!id) return c.text('Missing id', 400)
+    if (!id) return c.json({ success: false, message: 'missing id' }, 400)
 
     await c.env.DB.prepare('DELETE FROM sessions WHERE id = ? AND uid = ?').bind(id, payload.uid).run()
     return c.json({ success: true })
 })
 
-// Tokens
-user.get('/api/tokens', async (c) => {
+user.delete('/api/sessions/others', async (c) => {
     const payload = c.get('user')!
-    const tokens = await c.env.DB.prepare('SELECT id, label, created_at FROM tokens WHERE uid = ? ORDER BY created_at DESC').bind(payload.uid).all<Token>()
-    return c.json({ success: true, tokens: tokens.results })
+    if (payload.isOatLogin) return c.json({ success: false, message: 'action not permitted via OAT session' }, 403)
+
+    await c.env.DB.batch([
+        c.env.DB.prepare('DELETE FROM sessions WHERE uid = ? AND id != ?').bind(payload.uid, payload.sessionId),
+        c.env.DB.prepare('DELETE FROM oats WHERE uid = ?').bind(payload.uid)
+    ])
+
+    return c.json({ success: true })
 })
 
-user.post('/api/tokens', async (c) => {
+// OATs (Opaque Auth Tickets)
+user.get('/api/oats', async (c) => {
+    const payload = c.get('user')!
+    const oats = await c.env.DB.prepare('SELECT id, label, created_at FROM oats WHERE uid = ? ORDER BY created_at DESC').bind(payload.uid).all<OatRecord>()
+    return c.json({ success: true, oats: oats.results })
+})
+
+user.post('/api/oats', async (c) => {
     const payload = c.get('user')!
     const formData = await c.req.parseBody()
-    const label = (formData['label'] as string) || 'New Token'
+    const label = (formData['label'] as string) || 'New OAT'
 
-    const countObj = await c.env.DB.prepare('SELECT COUNT(*) as count FROM tokens WHERE uid = ?').bind(payload.uid).first<{ count: number }>()
-    if (countObj && countObj.count >= 3) return c.json({ success: false, message: 'max 3 tokens allowed' }, 400)
+    const countObj = await c.env.DB.prepare('SELECT COUNT(*) as count FROM oats WHERE uid = ?').bind(payload.uid).first<{ count: number }>()
+    if (countObj && countObj.count >= 3) return c.json({ success: false, message: 'max 3 OATs allowed' }, 400)
 
     const rawHex = (crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, ''))
-    const rawToken = 'AT-' + rawHex.substring(0, 32)
-    const hashedToken = await sha256(rawToken)
+    const rawTicket = 'OAT-' + rawHex.substring(0, 32)
+    const hashedTicket = await sha256(rawTicket)
 
-    await c.env.DB.prepare('INSERT INTO tokens (uid, token, label, created_at) VALUES (?, ?, ?, ?)')
-        .bind(payload.uid, hashedToken, label, Date.now())
+    await c.env.DB.prepare('INSERT INTO oats (uid, hashed_ticket, label, created_at) VALUES (?, ?, ?, ?)')
+        .bind(payload.uid, hashedTicket, label, Date.now())
         .run()
 
-    return c.json({ success: true, token: rawToken })
+    return c.json({ success: true, ticket: rawTicket })
 })
 
-user.delete('/api/tokens', async (c) => {
+user.delete('/api/oats', async (c) => {
     const payload = c.get('user')!
     const id = c.req.query('id')
     if (!id) return c.json({ success: false, message: 'missing id' }, 400)
     
-    await c.env.DB.prepare('DELETE FROM tokens WHERE id = ? AND uid = ?').bind(id, payload.uid).run()
+    await c.env.DB.prepare('DELETE FROM oats WHERE id = ? AND uid = ?').bind(id, payload.uid).run()
     return c.json({ success: true })
 })
 

@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>login (AT) - coffeeroom</title>
-    <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
+    <title>OAT Login - coffeeroom</title>
+    <meta name="theme-color" content="#c7d6e5" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#191d22" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -51,18 +51,18 @@
           <span class="themebtn">theme: <a href="#" id="darkModeButton">auto</a></span>
           </div>
           <br>
-          <div class="title-auth">Token Login</div>
+          <div class="title-auth">OAT Login</div>
           <div class="container">
             <div class="authbox">
-                <span class="text">Access Token Login</span><br>
-                <span class="text" style="color: var(--note-color); font-size: 12px;">Tokens are one-time use. You will be logged in for 90 days.</span>
+                <span class="text">Opache Auth Ticket Login</span><br>
+                <span class="text" style="color: var(--note-color); font-size: 12px;">OATs are one-time use. You will be logged in for 90 days.</span>
             </div>
             <div class="authbox">
                 <div id="auth-message" class="auth-message"></div>
                 <br>
                 <form id="login-form" method="POST" action="/api/login">
                         <div class="input-group"><input type="text" id="username" name="username" placeholder="username" required /></div>
-                        <div class="input-group"><input type="password" id="access_token" name="access_token" placeholder="access token (AT-...)" required /></div>
+                        <div class="input-group"><input type="password" id="oa_ticket" name="oa_ticket" placeholder="opache auth ticket" required /></div>
                     <button type="submit">login</button>
                 </form>
                 <br>

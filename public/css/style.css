@@ -174,7 +174,7 @@ input:focus {
 .connection-status {
     font-family: 'unifont', sans-serif;
     font-size: 12px;
-    color: var(--border-color);
+    color: var(--comment-color);
     text-align: left;
     margin: 5px 4px 6px 0;
     user-select: none;
@@ -245,7 +245,7 @@ input:focus {
     margin-top: 8px;
     margin-bottom: 4px;
     font-size: 0.9em;
-    border-bottom: 0.5px solid var(--border-color);
+    border-bottom: 0.5px solid var(--comment-color);
     padding-bottom: 5px;
 }
 .user-group-title:first-child {
@@ -260,7 +260,7 @@ input:focus {
 .msg-id-copy {
     opacity: 0;
     cursor: pointer;
-    color: var(--border-color);
+    color: var(--comment-color);
     margin-left: 10px;
     user-select: none;
     font-size: 0.85em;

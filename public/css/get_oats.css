@@ -23,7 +23,7 @@
 }
 .token-mask {
     font-family: 'unifont', monospace;
-    color: var(--border-color);
+    color: var(--comment-color);
     font-size: 12px;
 }
 .btn-delete {
@@ -73,7 +73,7 @@
     margin: 5px 0;
     padding: 5px;
     user-select: all;
-    background-color: var(--msg-bg-color);
+    background-color: var(--key-bg-color);
     border-radius: 3px;
 }
 .warning-text {
@@ -130,7 +130,7 @@
 .alert {
     font-family: 'unifont', sans-serif;
     font-size: 14px;
-    color: var(--border-color);
+    color: var(--comment-color);
 }
 
 input:focus {

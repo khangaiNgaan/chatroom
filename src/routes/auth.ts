@@ -9,7 +9,7 @@ import { sendEmail } from '../utils/email'
 import { generateNextUid } from '../utils/user'
 import * as templates from '../templates/pages'
 import * as emailTemplates from '../templates/email'
-import { User, Invite, Token, PasswordReset, EmailVerification, PendingRegistration } from '../models'
+import { User, Invite, OatRecord, PasswordReset, EmailVerification, PendingRegistration } from '../models'
 
 const auth = new Hono<{ Bindings: Bindings, Variables: Variables }>()
 
@@ -42,22 +42,22 @@ const setSessionCookie = async (c: any, user: User, sessionId: string) => {
 auth.post('/api/login', async (c) => {
     try {
         const formData = await c.req.parseBody()
-        const accessToken = formData['access_token'] as string
+        const oaTicket = formData['oa_ticket'] as string
         const loginUsername = formData['username'] as string
 
-        // 1. Access Token Login
-        if (accessToken) {
-            const hashedToken = await sha256(accessToken)
-            const tokenRecord = await c.env.DB.prepare('SELECT id, uid FROM tokens WHERE token = ?').bind(hashedToken).first<Token>()
-            if (!tokenRecord) {
-                return c.json({ success: false, message: 'invalid access token' }, 403)
+        // 1. OAT Login
+        if (oaTicket) {
+            const hashedTicket = await sha256(oaTicket)
+            const ticketRecord = await c.env.DB.prepare('SELECT id, uid FROM oats WHERE hashed_ticket = ?').bind(hashedTicket).first<OatRecord>()
+            if (!ticketRecord) {
+                return c.json({ success: false, message: 'invalid OAT' }, 403)
             }
 
-            const user = await c.env.DB.prepare('SELECT * FROM users WHERE uid = ?').bind(tokenRecord.uid).first<User>()
+            const user = await c.env.DB.prepare('SELECT * FROM users WHERE uid = ?').bind(ticketRecord.uid).first<User>()
             if (!user) return c.json({ success: false, message: 'user not found' }, 404)
 
             if (!loginUsername) {
-                return c.json({ success: false, message: 'username required for token login' }, 400)
+                return c.json({ success: false, message: 'username required for OAT login' }, 400)
             }
 
             if (user.username !== loginUsername) {
@@ -74,13 +74,14 @@ auth.post('/api/login', async (c) => {
                 .bind(sessionId, user.uid, ip, userAgent, Date.now(), expiresAt)
                 .run()
             
-            // Set Cookie (90 days for token login)
+            // Set Cookie (90 days for OAT login)
             const secret = new TextEncoder().encode(c.env.JWT_SECRET)
             const token = await new SignJWT({ 
                 uid: user.uid, 
                 username: user.username, 
                 role: user.role, 
-                sessionId: sessionId 
+                sessionId: sessionId,
+                isOatLogin: true
             })
                 .setProtectedHeader({ alg: 'HS256' })
                 .setIssuedAt()
@@ -97,8 +98,8 @@ auth.post('/api/login', async (c) => {
                 path: '/'
             })
 
-            // Burn Token
-            await c.env.DB.prepare('DELETE FROM tokens WHERE id = ?').bind(tokenRecord.id).run()
+            // Burn OAT
+            await c.env.DB.prepare('DELETE FROM oats WHERE id = ?').bind(ticketRecord.id).run()
 
             return c.json({ success: true, message: 'login successful' })
         }
@@ -245,8 +246,8 @@ auth.post('/api/signup/check-username', async (c) => {
         const username = formData['username'] as string
         const password = formData['password'] as string
 
-        if (!/^\w{4,16}$/.test(username)) {
-            return c.json({ success: false, message: "username must be 4-16 valid chars" }, 400)
+        if (!/^\w{4,16}$/.test(username) || !/[a-zA-Z]/.test(username)) {
+            return c.json({ success: false, message: "username must be 4-16 chars and contain letters" }, 400)
         }
 
         if (!password || password.length < 6) {
@@ -281,7 +282,7 @@ auth.post('/api/signup', async (c) => {
         if (!verification.success) return c.json({ success: false, message: 'security check failed (turnstile)' }, 403)
 
         if (!password || password.length < 6) return c.json({ success: false, message: 'password must be at least 6 characters' }, 400)
-        if (!/^\w{4,16}$/.test(username)) return c.json({ success: false, message: 'username contains invalid characters' }, 400)
+        if (!/^\w{4,16}$/.test(username) || !/[a-zA-Z]/.test(username)) return c.json({ success: false, message: 'username must be 4-16 chars and contain letters' }, 400)
 
         const existing = await c.env.DB.prepare('SELECT uid FROM users WHERE username = ?').bind(username).first<{ uid: string }>()
         if (existing) return c.json({ success: false, message: 'username already taken' }, 400)

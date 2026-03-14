@@ -172,7 +172,7 @@ async function fetchOnlineCount() {
             onlineDisplay.textContent = "auth required";
         }
     } catch (e) {
-        console.error("Failed to fetch online users:", e);
+        console.error("failed to fetch online users:", e);
         onlineDisplay.textContent = "error";
         onlineDisplay.style.color = "var(--text-color)";
     }
@@ -277,7 +277,7 @@ function joinRoom(roomName) {
   // 4. 清空聊天界面
   chatWindow.innerHTML = ""; 
   statusText.innerText = "connecting...";
-  statusText.style.color = "var(--border-color)";
+  statusText.style.color = "var(--comment-color)";
 
   // 5. 建立新连接
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -522,15 +522,75 @@ function formatDate(timestamp) {
     return `${y}-${m}-${d} ${h}:${min}:${s}`;
 }
 
-// 辅助函数: 解析换行并安全添加到元素
-function appendTextWithBr(container, text) {
-    const parts = text.split('<br>');
-    parts.forEach((part, index) => {
-        if (index > 0) {
-            container.appendChild(document.createElement('br'));
+// 辅助函数: 解码HTML实体
+function decodeHtmlEntities(text) {
+    return text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+}
+
+// 辅助函数: 解析排版标签并安全添加到元素
+function appendParsedText(container, text) {
+    const regex = /(<br>|<b>|<\/b>|<a\s+href="[^"]*">|<\/a>)/gi;
+    const parts = text.split(regex);
+    
+    let currentContainer = container;
+    const stack = []; 
+
+    for (let i = 0; i < parts.length; i++) {
+        let part = parts[i];
+        if (part === undefined || part === "") continue;
+
+        if (i % 2 === 1) { // 匹配到的标签
+            const matchStr = part.toLowerCase();
+            
+            if (matchStr === '<br>') {
+                currentContainer.appendChild(document.createElement('br'));
+            } else if (matchStr === '<b>') {
+                const b = document.createElement('b');
+                currentContainer.appendChild(b);
+                stack.push({ type: 'b', element: b, parent: currentContainer });
+                currentContainer = b;
+            } else if (matchStr === '</b>') {
+                let found = false;
+                for (let j = stack.length - 1; j >= 0; j--) {
+                    if (stack[j].type === 'b') {
+                        const popped = stack.splice(j);
+                        currentContainer = popped[0].parent;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
+            } else if (matchStr.startsWith('<a ')) {
+                const urlMatch = part.match(/^<a\s+href="([^"]*)">$/i);
+                if (urlMatch) {
+                    const url = urlMatch[1];
+                    const a = document.createElement('a');
+                    a.href = `/redirect.html?url=${encodeURIComponent(url)}`;
+                    a.target = "_blank";
+                    currentContainer.appendChild(a);
+                    stack.push({ type: 'a', element: a, parent: currentContainer });
+                    currentContainer = a;
+                } else {
+                    currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
+                }
+            } else if (matchStr === '</a>') {
+                let found = false;
+                for (let j = stack.length - 1; j >= 0; j--) {
+                    if (stack[j].type === 'a') {
+                        const popped = stack.splice(j);
+                        currentContainer = popped[0].parent;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
+            } else {
+                currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
+            }
+        } else { // 普通文本
+            currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
         }
-        container.appendChild(document.createTextNode(part));
-    });
+    }
 }
 
 // 辅助函数：添加消息到屏幕
@@ -543,10 +603,10 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
             if (contentDiv) {
                 const cleanedText = cleanMessage(text);
                 contentDiv.innerHTML = ""; // 清空
-                appendTextWithBr(contentDiv, cleanedText);
+                appendParsedText(contentDiv, cleanedText);
                 
                 if (isDeleted || isCensored) {
-                    contentDiv.style.color = "var(--border-color)";
+                    contentDiv.style.color = "var(--comment-color)";
                 }
             }
             return;
@@ -589,7 +649,7 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     // 时间
     const timeSpan = document.createElement('span');
     timeSpan.textContent = formatDate(timestamp);
-    timeSpan.style.color = "var(--border-color)";
+    timeSpan.style.color = "var(--comment-color)";
     timeSpan.style.fontSize = "0.85em";
     timeSpan.style.fontFamily = "'unifont', monospace";
 
@@ -619,7 +679,7 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
                     copySpan.textContent = originalText;
                 }, 1000);
             }).catch(err => {
-                console.error('Failed to copy:', err);
+                console.error('failed to copy:', err);
             });
         });
     }
@@ -636,11 +696,11 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     contentDiv.style.fontWeight = "normal";
     
     if (isDeleted || isCensored) {
-        contentDiv.style.color = "var(--border-color)";
+        contentDiv.style.color = "var(--comment-color)";
     }
 
     // 解析换行
-    appendTextWithBr(contentDiv, text);
+    appendParsedText(contentDiv, text);
 
     // --- 拼装 ---
     div.appendChild(headerDiv);

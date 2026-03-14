@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>access tokens - coffeeroom</title>
+    <title>OATs - coffeeroom</title>
     <meta name="theme-color" content="#d8e3ed" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#242931" media="(prefers-color-scheme: dark)">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -12,7 +12,7 @@
     <link rel="manifest" href="/site.webmanifest">
     <link rel="stylesheet" href="/css/main.css">
     <link rel="stylesheet" href="/css/style.css">
-    <link rel="stylesheet" href="/css/get_tokens.css">
+    <link rel="stylesheet" href="/css/get_oats.css">
     <script>
       (function() {
           const savedMode = localStorage.getItem('theme-mode') || 'auto';
@@ -45,15 +45,15 @@
             </span>
           </div>
           
-          <div class="title" style="margin: 30px 0; font-size: 18px;">Access Tokens</div>
+          <div class="title" style="margin: 30px 0; font-size: 18px;">Opaque Auth Tickets</div>
           
           <form id="create-token-form" class="create-form">
-                <div class="input-group"><input type="text" name="label" placeholder="token label" required maxlength="30"></div><button type="submit">generate</button>
+                <div class="input-group"><input type="text" name="label" placeholder="OAT label" required maxlength="30"></div><button type="submit">generate</button>
           </form>
 
           <div class="display-container">
             <div id="new-token-display">
-                <div style="font-family: 'unifont', sans-serif; color: var(--connection-green); font-size: 14px; margin-bottom: 15px; text-align: center;">Access Token Created</div>
+                <div style="font-family: 'unifont', sans-serif; color: var(--connection-green); font-size: 14px; margin-bottom: 15px; text-align: center;">OAT Created</div>
                 <div class="token-secret" id="token-secret-text" style="text-align: center;"></div>
                 <div class="warning-text">Copy it now. It won't be shown again.</div>
                 <div class="button-group"><button id="copy-token-button">copy</button><button id="close-token-button">close</button></div>
@@ -76,7 +76,7 @@
     </div>
     <script src="/scripts/theme.js"></script>
     <script defer src="/scripts/favicon.js"></script>
-    <script src="/scripts/get_tokens.js"></script>
+    <script src="/scripts/get_oats.js"></script>
     <script src="/scripts/version.js"></script>
   </body>
 </html>

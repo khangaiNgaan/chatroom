@@ -1,7 +1,31 @@
 document.addEventListener('DOMContentLoaded', () => {
     loadSessions();
     loadUserInfo();
+
+    const revokeAllBtn = document.getElementById('revoke-all-btn');
+    if (revokeAllBtn) {
+        revokeAllBtn.addEventListener('click', revokeAllOthers);
+    }
 });
+
+async function revokeAllOthers() {
+    if (!confirm('Are you sure you want to revoke all other sessions and delete all Opaque Auth Tickets (OATs)? This will log out all other devices.')) return;
+
+    try {
+        const response = await fetch('/api/sessions/others', {
+            method: 'DELETE'
+        });
+        const data = await response.json();
+        if (data.success) {
+            loadSessions();
+            alert('All other sessions and OATs have been revoked.');
+        } else {
+            alert('failed to revoke: ' + (data.message || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('network error');
+    }
+}
 
 async function loadUserInfo() {
     try {
@@ -36,7 +60,7 @@ async function loadSessions() {
         }
     } catch (err) {
         console.error(err);
-        list.innerHTML = '<div class="error">Network error</div>';
+        list.innerHTML = '<div class="error">network error</div>';
     }
 }
 
@@ -54,6 +78,7 @@ function renderSessions(sessions) {
         item.className = `session-item ${session.is_current ? 'current' : ''}`;
         
         const date = new Date(session.created_at).toLocaleString();
+        const expireDate = new Date(session.expires_at).toLocaleString();
         
         // Truncate UA if too long
         let ua = session.user_agent || 'unknown device';
@@ -68,7 +93,7 @@ function renderSessions(sessions) {
                 </div>
                 <div class="session-details">
                     <div title="${session.user_agent}">${ua}</div>
-                    <div>Created: ${date}</div>
+                    <div>Created: ${date}, Expires: ${expireDate}</div>
                 </div>
             </div>
         `;
@@ -95,9 +120,9 @@ window.revokeSession = async function(id) {
         if (data.success) {
             loadSessions();
         } else {
-            alert('Failed to revoke session: ' + (data.message || 'Unknown error'));
+            alert('failed to revoke session: ' + (data.message || 'Unknown error'));
         }
     } catch (err) {
-        alert('Network error');
+        alert('network error');
     }
 };

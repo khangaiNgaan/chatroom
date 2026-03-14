@@ -1,4 +1,4 @@
-const VERSION = "v1.13.2";
+const VERSION = "v1.14";
 
 document.addEventListener("DOMContentLoaded", () => {
     const versionElements = document.querySelectorAll('.app-ver');

@@ -2,11 +2,11 @@
 
 © 2026 caffeine-Ink
 
-适用版本: coffeeroom `v1.13`
+适用版本: coffeeroom `v1.14`
 
 基础 URL: `https://room.caffeine.ink`
 
-鉴权方式: `Session Cookie` (HttpOnly)
+鉴权方式: `JWT Session Cookie` (HttpOnly)
 
 <br>
 
@@ -21,9 +21,9 @@
 用户模块
 
 4. `GET /api/user`
-5. `GET /api/tokens`
-6. `POST /api/tokens`
-7. `DELETE /api/tokens`
+5. `GET /api/oats`
+6. `POST /api/oats`
+7. `DELETE /api/oats`
 8. `GET /api/sessions`
 9. `DELETE /api/sessions`
 
@@ -68,7 +68,7 @@ WebSocket: `/websocket/:room`
 
 参数:
 - username: `string`, e.g. `"flat_white"`
-- access_token: `string`, e.g. `"AT-e0e081aea4714b139526b28f629faeab"`
+- oa_ticket: `string`, e.g. `"OAT-e0e081aea4714b139526b28f629faeab"`
 
 响应头:
 
@@ -85,13 +85,13 @@ WebSocket: `/websocket/:room`
 { "success": true, "message": "login successful" }
 ```
 
-注: 用户名-密码登录需要提交 Turnstile 人机检查响应, 自动程序请使用 AT 登录。使用 AT 登录可取得 90 天有效期的 session cookie, 你可以设计程序完成自动续签 (在到期前自动创建新的 AT 并换取新的 session cookie)。
+注: 用户名-密码登录需要提交 Turnstile 人机检查响应, 自动程序请使用 OAT 登录。使用 OAT 登录可取得 90 天有效期的 session cookie, 你可以设计程序完成自动续签 (在到期前自动创建新的 OAT 并换取新的 session cookie)。
 
 #### 3. `POST /api/logout`
 
 摘要: 结束当前 session。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 响应: `Logged out` (plain text)
 
@@ -105,7 +105,7 @@ WebSocket: `/websocket/:room`
 
 摘要: 获取当前用户的个人资料。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 响应:
 
@@ -121,18 +121,18 @@ WebSocket: `/websocket/:room`
 }
 ```
 
-#### 5. `GET /api/tokens`
+#### 5. `GET /api/oats`
 
-摘要: 列出当前用户创建的 Access Tokens。
+摘要: 列出当前用户创建的 Opache Auth Tickets。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 响应:
 
 ```json
 {
     "success": true,
-    "tokens": [
+    "tickets": [
         {
             "id": 67,
             "label": "Neko Bot",
@@ -142,11 +142,11 @@ WebSocket: `/websocket/:room`
 }
 ```
 
-#### 6. `POST /api/tokens`
+#### 6. `POST /api/oats`
 
-摘要: 创建一个新的 Access Token (用于自动程序登录)。
+摘要: 创建一个新的 Opache Auth Ticket (用于自动程序登录)。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 请求类型: `application/x-www-form-urlencoded` 或 `multipart/form-data`
 
@@ -158,17 +158,17 @@ WebSocket: `/websocket/:room`
 ```json
 {
     "success": true,
-    "token": "AT-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    "ticket": "OAT-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 }
 ```
 
-注: Access Token 用完即焚, 最多共存 3 个, 如已有 3 个未使用的 AT 则无法继续创建。
+注: Opache Auth Ticket 用完即焚, 最多共存 3 个, 如已有 3 个未使用的 OAT 则无法继续创建。
 
-#### 7. `DELETE /api/tokens`
+#### 7. `DELETE /api/oats`
 
-摘要: 删除指定的 Access Token。
+摘要: 删除指定的 Opache Auth Ticket。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 参数:
 - id: `integer` (查询参数), e.g. `?id=67`
@@ -183,7 +183,7 @@ WebSocket: `/websocket/:room`
 
 摘要: 列出当前活跃的登录会话。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 响应:
 
@@ -208,7 +208,7 @@ WebSocket: `/websocket/:room`
 
 摘要: 结束指定会话 (踢下线)。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 参数:
 - id: `string` (查询参数), e.g. `?id=02f899d1-e072-4df2-a448-f79490a80232`
@@ -229,7 +229,7 @@ WebSocket: `/websocket/:room`
 
 摘要: 获取所有房间的在线用户聚合列表。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 响应:
 
@@ -255,7 +255,7 @@ WebSocket: `/websocket/:room`
 
 摘要: 获取指定房间的 20条 历史消息。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 参数:
 - room: `string` (路径参数), e.g. `"general"`
@@ -282,7 +282,7 @@ WebSocket: `/websocket/:room`
 
 摘要: 导出指定房间的聊天记录。
 
-鉴权: `Session Cookie`
+鉴权: `JWT Session Cookie`
 
 参数:
 - room: `string` (路径参数), e.g. `"general"`
@@ -322,7 +322,7 @@ WebSocket: `/websocket/:room`
 
 摘要: WebSocket 连接端点。
 
-鉴权: `Session Cookie` (Cookie 必须包含在握手请求 Header 中)
+鉴权: `JWT Session Cookie` (Cookie 必须包含在握手请求 Header 中)
 
 协议: `wss://`
 

@@ -19,6 +19,7 @@ export type Variables = {
     username: string
     role: string
     sessionId: string
+    isOatLogin?: boolean
   }
 }
 

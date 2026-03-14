@@ -18,10 +18,10 @@ export interface Invite {
     used_by_uid: string | null
 }
 
-export interface Token {
+export interface OatRecord {
     id: number
     uid: string
-    token: string
+    hashed_ticket: string
     label: string | null
     created_at: number
 }

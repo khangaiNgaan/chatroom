@@ -316,7 +316,11 @@ export class ChatRoom extends DurableObject {
                     let helpText = "Commands:<br>"
                     helpText += "/del <msg-id> (soft delete your own message)<br>"
                     helpText += "/save (save chat history in this room)<br>"
-                    
+                    helpText += "<br>Typeset:<br>"
+                    helpText += "&lt;br&gt; (line break)<br>"
+                    helpText += "&lt;b&gt;text&lt;/b&gt; (bold text)<br>"
+                    helpText += "&lt;a href=\"url\"&gt;text&lt;/a&gt; (link)<br>"
+
                     if (socket.userData.role === 'admin') {
                         helpText += "<br>Admin Commands:<br>"
                         helpText += "/clear (clear all messages in this room)<br>"

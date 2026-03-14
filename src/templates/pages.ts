@@ -85,9 +85,10 @@ export const getEmailVerifiedHtml = (email: string) => `
 
         :root {
             --bg-color: #d8e3ed;
-            --chat-bg-color: #eff3f7;
+            --chat-bg-color: #e9eff5;
             --popup-bg-color: rgba(255, 255, 255, 0.5);
-            --border-color: #808ea1;
+            --border-color: #a2adb9;
+            --comment-color: #808ea1;
             --note-color: #69727d;
             --text-color: #444f5d;
             --highlight-color: #b7c2d0;
@@ -95,7 +96,7 @@ export const getEmailVerifiedHtml = (email: string) => `
             --button-color: #f4f7f9;
             --button-hover-color: #ecf1f4;
             --button-active-color: #dee4e8;
-            --msg-bg-color: #e1eaf1;
+            --msg-bg-color: #dbe4ed;
             --connection-green: #347b68;
             --connection-red: #c05858;
             --success-color: #347b68;
@@ -109,6 +110,7 @@ export const getEmailVerifiedHtml = (email: string) => `
             --chat-bg-color: #2e3640;
             --popup-bg-color: rgba(46, 54, 64, 0.5);
             --border-color: #555c68;
+            --comment-color: #555c68;
             --note-color: #888e9d;
             --text-color: #e9f0f5;
             --highlight-color: #444f5d;
@@ -130,6 +132,7 @@ export const getEmailVerifiedHtml = (email: string) => `
             --chat-bg-color: #ffffff;
             --popup-bg-color: #ffffff;
             --border-color: #777777;
+            --comment-color: #777777;
             --note-color: #777777;
             --text-color: #000000;
             --highlight-color: #cccccc;
@@ -216,6 +219,7 @@ export const getEmailVerifiedHtml = (email: string) => `
             </div>
         </div>
     <script src="/scripts/theme.js"></script>
+    <script defer src="/scripts/favicon.js"></script>
     </body>
 </html>`
 
@@ -247,9 +251,10 @@ export const getRegistrationSuccessHtml = (username: string) => `
 
         :root {
             --bg-color: #d8e3ed;
-            --chat-bg-color: #eff3f7;
+            --chat-bg-color: #e9eff5;
             --popup-bg-color: rgba(255, 255, 255, 0.5);
-            --border-color: #808ea1;
+            --border-color: #a2adb9;
+            --comment-color: #808ea1;
             --note-color: #69727d;
             --text-color: #444f5d;
             --highlight-color: #b7c2d0;
@@ -257,7 +262,7 @@ export const getRegistrationSuccessHtml = (username: string) => `
             --button-color: #f4f7f9;
             --button-hover-color: #ecf1f4;
             --button-active-color: #dee4e8;
-            --msg-bg-color: #e1eaf1;
+            --msg-bg-color: #dbe4ed;
             --connection-green: #347b68;
             --connection-red: #c05858;
             --success-color: #347b68;
@@ -271,6 +276,7 @@ export const getRegistrationSuccessHtml = (username: string) => `
             --chat-bg-color: #2e3640;
             --popup-bg-color: rgba(46, 54, 64, 0.5);
             --border-color: #555c68;
+            --comment-color: #555c68;
             --note-color: #888e9d;
             --text-color: #e9f0f5;
             --highlight-color: #444f5d;
@@ -292,6 +298,7 @@ export const getRegistrationSuccessHtml = (username: string) => `
             --chat-bg-color: #ffffff;
             --popup-bg-color: #ffffff;
             --border-color: #777777;
+            --comment-color: #777777;
             --note-color: #777777;
             --text-color: #000000;
             --highlight-color: #cccccc;
@@ -378,6 +385,7 @@ export const getRegistrationSuccessHtml = (username: string) => `
             </div>
         </div>
     <script src="/scripts/theme.js"></script>
+    <script defer src="/scripts/favicon.js"></script>
     </body>
 </html>`
 
@@ -515,7 +523,7 @@ export const getResetPasswordFormHtml = (token: string, is2FAEnabled: boolean) =
                     msgBox.style.display = 'block';
                 }
             } catch (err) {
-                msgBox.innerText = "Network error";
+                msgBox.innerText = "network error";
                 msgBox.className = "auth-message error";
                 msgBox.style.display = 'block';
             }

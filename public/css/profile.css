@@ -11,10 +11,10 @@
 }
 .profile-table td:first-child {
     width: 120px;
-    color: var(--border-color);
+    color: var(--comment-color);
 }
 .loading-text {
-    color: var(--border-color);
+    color: var(--comment-color);
 }
 
 #profile-content {

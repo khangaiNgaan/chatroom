@@ -38,13 +38,13 @@ function formatDate(timestamp) {
     try {
         const res = await fetch('/api/user');
         if (res.status === 401) {
-            window.location.href = '/auth/login';
+            window.location.href = '/auth/login.html';
             return;
         }
         if (res.ok) {
             const user = await res.json();
             userDisplay.innerHTML = `Hi, ${user.username} (<a href="/api/logout">logout</a>) `;
-            loadTokens();
+            loadOats();
         }
     } catch (e) {
         console.error(e);
@@ -62,14 +62,14 @@ function formatDate(timestamp) {
         });
     });
 
-    // 2. Load Tokens
-    async function loadTokens() {
+    // 2. Load OATs
+    async function loadOats() {
         try {
-            const res = await fetch('/api/tokens');
+            const res = await fetch('/api/oats');
             const data = await res.json();
             
             if (data.success) {
-                renderList(data.tokens);
+                renderList(data.oats);
             } else {
                 listDiv.innerHTML = `<div class="alert" style="color: var(--connection-red);">Error: ${data.message}</div>`;
             }
@@ -79,14 +79,14 @@ function formatDate(timestamp) {
     }
 
     // 3. Render List
-    function renderList(tokens) {
-        if (tokens.length === 0) {
-            listDiv.innerHTML = `<div class="alert">No active tokens</div>`;
+    function renderList(oats) {
+        if (oats.length === 0) {
+            listDiv.innerHTML = `<div class="alert">No active OATs</div>`;
             return;
         }
 
         listDiv.innerHTML = '';
-        tokens.forEach(t => {
+        oats.forEach(t => {
             const div = document.createElement('div');
             div.className = 'token-item';
             
@@ -99,18 +99,18 @@ function formatDate(timestamp) {
             `;
             
             // Bind delete event
-            div.querySelector('.btn-delete').addEventListener('click', () => deleteToken(t.id));
+            div.querySelector('.btn-delete').addEventListener('click', () => deleteOat(t.id));
             listDiv.appendChild(div);
         });
     }
 
-    // 4. Create Token
+    // 4. Create OAT
     createForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(createForm);
         
         try {
-            const res = await fetch('/api/tokens', {
+            const res = await fetch('/api/oats', {
                 method: 'POST',
                 body: formData
             });
@@ -118,33 +118,33 @@ function formatDate(timestamp) {
             
             if (data.success) {
                 // Show secret
-                tokenSecretText.textContent = data.token;
+                tokenSecretText.textContent = data.ticket;
                 newTokenDisplay.style.display = 'block';
                 createForm.reset();
                 // Reload list
-                loadTokens();
+                loadOats();
             } else {
                 alert("Failed: " + data.message);
             }
         } catch (e) {
-            alert("Network error");
+            alert("network error");
         }
     });
 
-    // 5. Delete Token
-    async function deleteToken(id) {
-        if (!confirm("Are you sure you want to delete this token? This action cannot be undone.")) return;
+    // 5. Delete OAT
+    async function deleteOat(id) {
+        if (!confirm("Are you sure you want to delete this OAT? This action cannot be undone.")) return;
         
         try {
-            const res = await fetch(`/api/tokens?id=${id}`, { method: 'DELETE' });
+            const res = await fetch(`/api/oats?id=${id}`, { method: 'DELETE' });
             const data = await res.json();
             if (data.success) {
-                loadTokens();
+                loadOats();
             } else {
                 alert("Delete failed: " + data.message);
             }
         } catch (e) {
-            alert("Network error");
+            alert("network error");
         }
     }
 

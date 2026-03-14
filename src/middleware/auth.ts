@@ -24,7 +24,8 @@ export const authMiddleware = async (c: Context<{ Bindings: Bindings, Variables:
             uid: payload.uid as string,
             username: payload.username as string,
             role: payload.role as string,
-            sessionId: payload.sessionId as string
+            sessionId: payload.sessionId as string,
+            isOatLogin: payload.isOatLogin as boolean | undefined
         }
 
         // Check DB session if sessionId exists

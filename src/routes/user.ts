@@ -17,7 +17,7 @@ user.use('*', authMiddleware)
 user.get('/api/user', async (c) => {
     const payload = c.get('user')!
     
-    // 从 DB 获取最新信息
+    // fetch latest user data
     const user = await c.env.DB.prepare('SELECT uid, username, role, signup_date, email, email_verified, two_factor_enabled FROM users WHERE uid = ?')
         .bind(payload.uid)
         .first<User>()

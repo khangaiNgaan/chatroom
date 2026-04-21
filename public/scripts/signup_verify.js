@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. 检查 SessionStorage
+    // check session storage
     const username = sessionStorage.getItem('signup_username');
     const password = sessionStorage.getItem('signup_password');
 
@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('signup-method-form');
     const msgBox = document.getElementById('auth-message');
 
-    // 接管浏览器原生验证提示
+    // override native validation tooltips
     if (window.setupFormValidation) {
         window.setupFormValidation(form);
     }
@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const formData = new FormData(form);
         formData.append('username', username);
         formData.append('password', password);
-        // 不再需要 'method' 字段，由后端判断内容
 
         if (window.turnstile) {
             const token = window.turnstile.getResponse();
@@ -62,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.href = data.redirect;
                     }, 2000);
                 } else {
-                    // 邮箱流程，隐藏表单
+                    // hide form for email flow
                     form.style.display = 'none'; 
                 }
             } else {

@@ -85,7 +85,7 @@
 
       if (window.setupFormValidation) window.setupFormValidation(form);
 
-      // 接管表单提交
+      // handle form submission
       form.addEventListener('submit', async function(e) {
           e.preventDefault();
           msgBox.style.display = 'none';
@@ -105,7 +105,7 @@
                   msgBox.innerText = data.message;
                   msgBox.style.display = 'block';
                   msgBox.classList.add('success');
-                  // 成功后延迟跳转
+                  // redirect after success
                   setTimeout(() => {
                       window.location.href = '/';
                   }, 2000);

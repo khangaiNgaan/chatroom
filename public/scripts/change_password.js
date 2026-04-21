@@ -14,7 +14,7 @@ async function loadUserInfo() {
 
 const form = document.getElementById('change-password-form');
 
-// 接管浏览器原生验证提示
+// override native validation tooltips
 if (window.setupFormValidation) window.setupFormValidation(form);
 
 form.addEventListener('submit', async function(e) {

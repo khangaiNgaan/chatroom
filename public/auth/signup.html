@@ -86,7 +86,7 @@
 
       if (window.setupFormValidation) window.setupFormValidation(form);
 
-      // 第一步：验证并跳转
+      // step 1: validate and redirect
       form.addEventListener('submit', async function(e) {
           e.preventDefault();
           msgBox.style.display = 'none';
@@ -110,10 +110,6 @@
               return;
           }
 
-          // 这里可以加简单的前端格式校验，但最终以第二步后端校验为准
-          // 为了不暴露 API，我们直接存入 session 并跳转
-          // 或者先发个请求验证用户名是否可用？ (建议)
-
           try {
               const res = await fetch('/api/signup/check-username', {
                   method: 'POST',
@@ -123,10 +119,10 @@
               const data = await res.json();
 
               if (data.success) {
-                  // 存储数据
+                  // persist registration data
                   sessionStorage.setItem('signup_username', formData.get('username'));
                   sessionStorage.setItem('signup_password', password);
-                  // 跳转第二步
+                  // proceed to next step
                   window.location.href = '/auth/signup_verify';
               } else {
                   msgBox.innerText = data.message;

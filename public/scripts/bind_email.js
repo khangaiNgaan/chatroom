@@ -41,7 +41,7 @@ form.addEventListener('submit', async function(e) {
             msgBox.innerText = data.message;
             msgBox.style.display = 'block';
             msgBox.classList.add('success');
-            // 成功后禁用按钮防止重复发送
+            // disable button after success
             form.querySelector('button').disabled = true;
         } else {
             msgBox.innerText = data.message;

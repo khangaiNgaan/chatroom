@@ -5,7 +5,7 @@ async function loadUserInfo() {
             const user = await response.json();
             document.getElementById('user-display').innerHTML = `Hi, ${user.username} (<a href="/api/logout">logout</a>) `;
             
-            // 显示邮箱状态
+            // display email status
             const boundSection = document.getElementById('email-bound-section');
             const unboundSection = document.getElementById('email-unbound-section');
             const emailSpan = document.getElementById('current-email');
@@ -23,7 +23,7 @@ async function loadUserInfo() {
                 }
             }
 
-            // 2FA 状态
+            // display 2FA status
             const twoFaMsg = document.getElementById('2fa-enabled-msg');
             if (user.two_factor_enabled && twoFaMsg) {
                 twoFaMsg.style.display = 'block';

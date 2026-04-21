@@ -17,7 +17,7 @@ export class ChatRoom extends DurableObject {
     async fetch(request: Request) {
         const url = new URL(request.url)
 
-        // 处理内部获取用户列表的请求
+        // handle internal user list requests
         if (url.pathname === "/users") {
             const uniqueUsers = new Map()   
             this.sessions.forEach(session => {

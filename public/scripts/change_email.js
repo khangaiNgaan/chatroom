@@ -15,7 +15,7 @@ async function loadUserInfo() {
 const form = document.getElementById('change-email-form');
 const msgBox = document.getElementById('auth-message');
 
-// 接管浏览器原生验证提示
+// override native validation tooltips
 if (window.setupFormValidation) window.setupFormValidation(form);
 
 form.addEventListener('submit', async function(e) {
@@ -42,7 +42,7 @@ form.addEventListener('submit', async function(e) {
             msgBox.innerText = data.message;
             msgBox.style.display = 'block';
             msgBox.classList.add('success');
-            // 成功后禁用按钮
+            // disable button after success
             form.querySelector('button').disabled = true;
         } else {
             msgBox.innerText = data.message;

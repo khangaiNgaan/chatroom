@@ -1,6 +1,6 @@
 // public/scripts/client.js
 
-/* 获取元素 */
+/* UI Elements */
 
 const chatWindow = document.getElementById('chat-window');
 const chatForm = document.getElementById('chat-form');
@@ -10,7 +10,7 @@ const statusText = document.getElementById('status');
 const retryButton = document.getElementById('retryButton');
 const reloadButton = document.getElementById('reloadButton');
 
-/* 房间列表和占位符 */
+/* Room Configuration */
 
 const ROOMS = ["bulletin", "general", "irl", "news", "debug", "minecraft"];
 const ROOM_PLACEHOLDERS = {
@@ -24,15 +24,15 @@ const ROOM_PLACEHOLDERS = {
 
 let currentSocket = null;
 let currentRoom = "general";
-let currentUser = null; // 保存当前登录用户名
-let oldestMsgId = null; // 分页加载
-let isLoadingHistory = false; // 防抖
+let currentUser = null;
+let oldestMsgId = null;
+let isLoadingHistory = false;
 
-/* 函数 */
+/* Functions */
 
-// 函数：初始化
+// initialize application state
 async function init() {
-    // 1. 强制登录检查
+    // enforce login check
     try {
         const res = await fetch('/api/user');
         if (res.status === 401) {
@@ -44,7 +44,7 @@ async function init() {
             currentUser = user.username;
             console.log("Logged in as:", currentUser);
             
-            // 更新页面上的用户名显示 (如果 index.html 里有对应元素)
+            // update username display
             const userDisplay = document.getElementById('user-display');
             if (userDisplay) {
                 userDisplay.innerHTML = `Hi, <a href="/user/profile">${currentUser}</a> (<a href="/api/logout">logout</a>) `;
@@ -59,7 +59,7 @@ async function init() {
     if (retryButton) {
         retryButton.style.display = 'none';
         retryButton.addEventListener('click', () => {
-            console.log("手动重连中...");
+            console.log("reconnecting...");
             retryButton.style.display = 'none';
             joinRoom(currentRoom);
         });
@@ -67,12 +67,12 @@ async function init() {
     if (reloadButton) {
         reloadButton.style.display = 'none';
         reloadButton.addEventListener('click', () => {
-            console.log("页面重载中...");
+            console.log("reloading...");
             window.location.reload();
         });
     }
 
-    // 绑定滚动事件 (load more)
+    // bind scroll for pagination
     chatWindow.addEventListener('scroll', () => {
         if (chatWindow.scrollTop === 0 && !isLoadingHistory && oldestMsgId) {
             loadMoreMessages();
@@ -81,11 +81,11 @@ async function init() {
 
     joinRoom(currentRoom);
 
-    // 在线人数轮询
+    // poll online user count
     fetchOnlineCount();
     setInterval(fetchOnlineCount, 10000);
 
-    // 绑定 popup 点击事件
+    // bind popup click events
     const onlineBtn = document.getElementById('online-users');
     const onlinePopup = document.getElementById('online-users-popup');
     const channelBtn = document.getElementById('channel-menu-btn');
@@ -96,7 +96,7 @@ async function init() {
             e.stopPropagation();
             const isShowing = onlinePopup.classList.toggle('show');
             onlineBtn.classList.toggle('active', isShowing);
-            // 关闭另一个 popup
+            
             if (channelPopup) {
                 channelPopup.classList.remove('show');
                 channelBtn.classList.remove('active');
@@ -110,7 +110,6 @@ async function init() {
             if (roomList) {
                 roomList.classList.toggle('show');
             }
-            // 关闭 online popup
             if (onlinePopup) {
                 onlinePopup.classList.remove('show');
                 onlineBtn.classList.remove('active');
@@ -118,7 +117,7 @@ async function init() {
         });
     }
 
-    // 点击外部关闭
+    // close popups on outside click
     document.addEventListener('click', (e) => {
         if (onlineBtn && onlinePopup && !onlineBtn.contains(e.target) && !onlinePopup.contains(e.target)) {
             onlinePopup.classList.remove('show');
@@ -130,7 +129,7 @@ async function init() {
     });
 }
 
-// 函数: 加载历史记录
+// load more chat history
 async function loadMoreMessages() {
     if (isLoadingHistory || !oldestMsgId) return;
     isLoadingHistory = true;
@@ -140,23 +139,21 @@ async function loadMoreMessages() {
         if (res.ok) {
             const data = await res.json();
             if (data.success && data.messages.length > 0) {
-                // 记录当前的滚动高度和位置
+                // record scroll position
                 const oldScrollHeight = chatWindow.scrollHeight;
                 const oldScrollTop = chatWindow.scrollTop;
 
-                // 更新 cursor 为这批数据中最老的一条
-                // data.messages 是 [Oldest, ..., Newest]
+                // update cursor to oldest message
                 oldestMsgId = data.messages[0].msg_id;
 
-                // 倒序遍历
+                // prepend messages in reverse order
                 for (let i = data.messages.length - 1; i >= 0; i--) {
                     const msg = data.messages[i];
                     const senderName = msg.sender_username || msg.sender || "anonymous";
                     addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "prepend", msg.is_deleted, msg.is_censored, msg.is_bridged);
                 }
 
-                // 恢复滚动位置
-                // 新的 scrollHeight - 旧的 scrollHeight = 增加的高度
+                // restore scroll position
                 const newScrollHeight = chatWindow.scrollHeight;
                 chatWindow.scrollTop = newScrollHeight - oldScrollHeight;
 
@@ -172,7 +169,7 @@ async function loadMoreMessages() {
     }
 }
 
-// 函数：获取并更新在线人数及列表
+// update online user list
 async function fetchOnlineCount() {
     const onlineDisplay = document.getElementById('online-users');
     const onlinePopup = document.getElementById('online-users-popup');
@@ -201,7 +198,7 @@ async function fetchOnlineCount() {
     }
 }
 
-// 辅助函数：渲染 online user popup 内容
+// render online users popup
 function renderOnlineUsersPopup(container, users) {
     container.innerHTML = "";
     
@@ -210,7 +207,7 @@ function renderOnlineUsersPopup(container, users) {
         return;
     }
 
-    // 分组逻辑
+    // group users by channel
     const currentRoomUsers = [];
     const otherRoomUsers = {};
 
@@ -254,7 +251,7 @@ function renderOnlineUsersPopup(container, users) {
     }
 }
 
-// 函数：渲染房间列表
+// render chat room list
 function renderRoomList() {
     roomList.innerHTML = "";
 
@@ -262,9 +259,8 @@ function renderRoomList() {
     const div = document.createElement("div");
     div.textContent = roomName;
     div.className = "room-item";
-    div.dataset.room = roomName; // 保存房间名
+    div.dataset.room = roomName;
 
-    // 点击事件
     div.addEventListener("click", () => {
       if (currentRoom !== roomName) {
         joinRoom(roomName);
@@ -276,22 +272,21 @@ function renderRoomList() {
 
 }
 
-// 函数：切换房间
+// switch active chat room
 function joinRoom(roomName) {
 
-  // 1. 隐藏重连按钮
   if (retryButton) retryButton.style.display = 'none';
   if (reloadButton) reloadButton.style.display = 'none';
   
-  // 2. 断开当前连接
+  // disconnect current session
   if (currentSocket) {
-    console.log(`断开 ${currentRoom} 的连接...`);
+    console.log(`disconnecting from ${currentRoom}...`);
     currentSocket.close();
   }
 
-  // 3. 更新 UI 状态
+  // update UI state
   currentRoom = roomName;
-  oldestMsgId = null; // 重置分页 cursor
+  oldestMsgId = null; 
   isLoadingHistory = false;
   updateActiveRoomUI(roomName);
 
@@ -302,22 +297,21 @@ function joinRoom(roomName) {
 
   messageInput.placeholder = ROOM_PLACEHOLDERS[roomName] || "input...";
   
-  // 4. 清空聊天界面
+  // clear chat interface
   chatWindow.innerHTML = ""; 
   statusText.innerText = "connecting...";
   statusText.style.color = "var(--comment-color)";
 
-  // 5. 建立新连接
+  // establish new connection
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${protocol}//${window.location.host}/websocket/${roomName}`;
   
   currentSocket = new WebSocket(wsUrl);
 
-  // 6. 绑定事件监听
   setupSocketListeners(currentSocket);
 }
 
-// 函数：高亮活跃房间
+// highlight active room
 function updateActiveRoomUI(activeRoom) {
   const items = document.querySelectorAll(".room-item");
   items.forEach(item => {
@@ -330,22 +324,22 @@ function updateActiveRoomUI(activeRoom) {
 }
 
 
-// 函数：WebSocket 事件监听绑定
+// bind websocket event listeners
 function setupSocketListeners(socket) {
   socket.onopen = () => {
     if (socket !== currentSocket) return;
-    console.log("连接成功");
+    console.log("connected successfully");
     statusText.innerText = "connected";
     statusText.style.color = "var(--connection-green)";
     setTimeout(fetchOnlineCount, 500);
   };
 
   socket.onmessage = (event) => {
-    console.log("收到:", event.data);
+    console.log("received:", event.data);
     try {
         const msg = JSON.parse(event.data);
 
-        // 处理从服务端发来的桥接成功状态推送
+        // handle bridge status notification
         if (msg.type === "bridge_status" && msg.status === "success" && msg.msg_id) {
             const existingDiv = document.querySelector(`.message[data-msg-id="${msg.msg_id}"]`);
             if (existingDiv) {
@@ -365,7 +359,7 @@ function setupSocketListeners(socket) {
             return;
         }
 
-        // 初始化 cursor: 记录收到的第一条消息 ID (最老的一条)
+        // initialize cursor with first message
         if (oldestMsgId === null && msg.msg_id) {
             oldestMsgId = msg.msg_id;
         }
@@ -373,7 +367,6 @@ function setupSocketListeners(socket) {
         const senderName = msg.sender_username || msg.sender || "anonymous";
         addMessage(senderName, msg.text, "received", msg.timestamp, msg.msg_id, "append", msg.is_deleted, msg.is_censored, msg.is_bridged);
     } catch (e) {
-        // 向后兼容
         addMessage("anonymous", event.data, "received");
     }
   };
@@ -382,9 +375,8 @@ function setupSocketListeners(socket) {
     if (socket !== currentSocket) return;
     statusText.innerText = "disconnected";
     statusText.style.color = "var(--connection-red)";
-    console.log("连接断开");
+    console.log("connection lost");
     
-    // 显示重连按钮
     if (retryButton) {
       retryButton.style.display = 'inline';
     }
@@ -394,12 +386,11 @@ function setupSocketListeners(socket) {
   };
 
   socket.onerror = (error) => {
-    console.error("WebSocket 错误:", error);
+    console.error("WebSocket error:", error);
   };
 }
 
-// 辅助函数: 生成带时区的 ISO 字符串
-// 例: 2026-01-27T04:00:00+08:00
+// format date to ISO string
 function formatLocalISOString(date) {
     const pad = (n) => n.toString().padStart(2, '0');
     const year = date.getFullYear();
@@ -417,7 +408,7 @@ function formatLocalISOString(date) {
     return `${year}-${month}-${day}T${hour}:${minute}:${second}${diffSign}${diffHour}:${diffMin}`;
 }
 
-// 辅助函数: 处理 /save 命令
+// process chat export command
 async function handleSaveCommand(text) {
     const args = text.trim().split(/\s+/);
     const cmd = args[0];
@@ -425,10 +416,8 @@ async function handleSaveCommand(text) {
 
     if (cmd !== "/save") return false;
 
-    // 参数验证
     let limit = "all";
     if (!param) {
-        // 打印帮助
         addMessage("system", "usage: /save all OR /save <num>", "received");
         return true;
     }
@@ -463,29 +452,27 @@ async function handleSaveCommand(text) {
 
         const messagesToSave = data.messages;
 
-        // 生成 CSV 内容
+        // generate csv content
         let csvContent = "msg-timestamp-hex,datetime,uid,username,text\n";
 
         messagesToSave.forEach(msg => {
             const date = new Date(msg.timestamp);
             const timeStr = formatLocalISOString(date);
             
-            // CSV 转义
             const safeText = `"${(msg.text || "").replace(/"/g, '""')}"`;
             
-            // 字段处理
             const uid = msg.sender_uid;
             const username = msg.sender_username;
 
             csvContent += `${msg.msg_id},${timeStr},${uid},${username},${safeText}\n`;
         });
 
-        // 生成文件名: chatroom_datetime(count).txt
+        // define export filename
         const rawNowStr = formatLocalISOString(new Date());
         const nowStr = rawNowStr.replace(/:/g, '');
         const filename = `${currentRoom}_${nowStr}(${messagesToSave.length}).txt`;
 
-        // 创建 Blob 并触发下载
+        // trigger file download
         const blob = new Blob([csvContent], { type: 'text/plain;charset=utf-8;' }); 
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
@@ -506,39 +493,38 @@ async function handleSaveCommand(text) {
     return true;
 }
 
-// 核心函数：发送逻辑 
+// handle chat form submission
 chatForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // 阻止页面刷新
+    e.preventDefault(); 
     
     const text = messageInput.value;
-    if (!text) return; // 如果是空的则不发送
+    if (!text) return; 
 
-    // 拦截 /save 命令
+    // intercept /save command
     if (text.startsWith("/save")) {
         messageInput.value = '';
         await handleSaveCommand(text);
         return;
     }
 
-    // 发送给服务器
+    // transmit message via websocket
     if (currentSocket.readyState === WebSocket.OPEN) {
         currentSocket.send(text);
-        console.log("已发送:", text);
+        console.log("sent:", text);
     } else {
-        console.warn("未连接，无法发送");
+        console.warn("not connected");
         alert("Not connected to the server.");
     }
 
-    // 清空输入框
     messageInput.value = '';
 });
 
-// 辅助函数：清洗异体字控制符
+// remove variation selector characters
 function cleanMessage(text) {
   return text.replace(/\uFE0F/g, '');
 }
 
-// 辅助函数：格式化时间 YYYY-MM-DD HH:MM:SS
+// format timestamp to readable date
 function formatDate(timestamp) {
     const date = new Date(timestamp);
     const y = date.getFullYear();
@@ -550,12 +536,12 @@ function formatDate(timestamp) {
     return `${y}-${m}-${d} ${h}:${min}:${s}`;
 }
 
-// 辅助函数: 解码HTML实体
+// decode html entities
 function decodeHtmlEntities(text) {
     return text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 }
 
-// 辅助函数: 解析排版标签并安全添加到元素
+// parse formatting tags safely
 function appendParsedText(container, text) {
     const regex = /(<br>|<b>|<\/b>|<a\s+href="[^"]*">|<\/a>)/gi;
     const parts = text.split(regex);
@@ -567,7 +553,7 @@ function appendParsedText(container, text) {
         let part = parts[i];
         if (part === undefined || part === "") continue;
 
-        if (i % 2 === 1) { // 匹配到的标签
+        if (i % 2 === 1) { 
             const matchStr = part.toLowerCase();
             
             if (matchStr === '<br>') {
@@ -615,22 +601,22 @@ function appendParsedText(container, text) {
             } else {
                 currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
             }
-        } else { // 普通文本
+        } else { 
             currentContainer.appendChild(document.createTextNode(decodeHtmlEntities(part)));
         }
     }
 }
 
-// 辅助函数：添加消息到屏幕
+// render message to chat window
 function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, method = "append", isDeleted = false, isCensored = false, isBridged = false) {
-    // 检查是否存在: 如果存在则更新内容
+    // update existing message if found
     if (msgId) {
         const existingDiv = document.querySelector(`.message[data-msg-id="${msgId}"]`);
         if (existingDiv) {
             const contentDiv = existingDiv.lastElementChild;
             if (contentDiv) {
                 const cleanedText = cleanMessage(text);
-                contentDiv.innerHTML = ""; // 清空
+                contentDiv.innerHTML = ""; 
                 appendParsedText(contentDiv, cleanedText);
                 
                 if (isDeleted || isCensored) {
@@ -643,21 +629,18 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
 
     const div = document.createElement('div');
     div.className = 'message';
-    div.style.marginBottom = "10px"; // 增加一点消息间距
+    div.style.marginBottom = "10px"; 
     if (msgId) {
         div.dataset.msgId = msgId;
     }
     
     text = cleanMessage(text);
     
-    // 样式判断
-
-    // --- 第一行：名字 + 时间 ---
+    // create message header
     const headerDiv = document.createElement('div');
     headerDiv.style.marginBottom = "3px";
     headerDiv.style.lineHeight = "1.4";
 
-    // 名字
     const senderSpan = document.createElement('span');
     senderSpan.textContent = sender; 
     senderSpan.style.marginRight = "10px";
@@ -674,14 +657,12 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
         senderSpan.style.color = "var(--nom-color)";
     }
 
-    // 时间
     const timeSpan = document.createElement('span');
     timeSpan.textContent = formatDate(timestamp);
     timeSpan.style.color = "var(--comment-color)";
     timeSpan.style.fontSize = "0.85em";
     timeSpan.style.fontFamily = "'unifont', monospace";
 
-    // bridged checkmark
     let bridgeCheckmark = null;
     if (isBridged) {
         bridgeCheckmark = document.createElement('span');
@@ -693,7 +674,6 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
         bridgeCheckmark.title = "synced";
     }
 
-    // copy msg-id 按钮
     const copySpan = document.createElement('span');
     copySpan.textContent = "#";
     copySpan.className = "msg-id-copy";
@@ -717,9 +697,9 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     if (bridgeCheckmark) headerDiv.appendChild(bridgeCheckmark);
     if (msgId) headerDiv.appendChild(copySpan);
 
-    // --- 第二行：内容 ---
+    // create message content
     const contentDiv = document.createElement('div');
-    contentDiv.style.wordBreak = "break-word"; // 防止长单词撑破
+    contentDiv.style.wordBreak = "break-word"; 
     contentDiv.style.lineHeight = "1.4";
     contentDiv.style.fontWeight = "normal";
     
@@ -727,19 +707,15 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
         contentDiv.style.color = "var(--comment-color)";
     }
 
-    // 解析换行
     appendParsedText(contentDiv, text);
 
-    // --- 拼装 ---
     div.appendChild(headerDiv);
     div.appendChild(contentDiv);
 
-    // 上墙
     if (method === "prepend") {
         chatWindow.prepend(div);
     } else {
-        // append: 智能滚动
-        // 如果用户已经在底部附近 (<100px)，或者消息是自己发的，就自动滚动
+        // smart auto-scroll logic
         const isNearBottom = chatWindow.scrollHeight - chatWindow.scrollTop - chatWindow.clientHeight < 100;
         
         chatWindow.appendChild(div);
@@ -750,6 +726,6 @@ function addMessage(sender, text, type, timestamp = Date.now(), msgId = null, me
     }
 }
 
-/* 启动 */
+/* Entry Point */
 
 init();

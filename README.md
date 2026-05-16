@@ -1,14 +1,14 @@
-### coffeeroom
+## coffeeroom
 
 A chatroom implementation.
 
 Copyright (c) 2025, 2026, Caffeine Ink
 
-#### License
+### License
 
-[**GNU AGPL v3.0**](LICENSE).
+[GNU AGPL v3.0](LICENSE)
 
-#### Acknowledgments
+### Acknowledgments
 
 Built on the Cloudflare Global Network. Thank you, Cloudflare!
 
